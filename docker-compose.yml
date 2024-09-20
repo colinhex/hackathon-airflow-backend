@@ -1,0 +1,69 @@
+version: '3.8'
+
+x-airflow-common-environment: &airflow-common-environment
+  AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR:-LocalExecutor}
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
+  AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
+  AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES:-False}
+  AIRFLOW__WEBSERVER__EXPOSE_CONFIG: ${AIRFLOW__WEBSERVER__EXPOSE_CONFIG:-True}
+  AIRFLOW__WEBSERVER__EXPOSE_HOSTNAME: ${AIRFLOW__WEBSERVER__EXPOSE_HOSTNAME:-True}
+  AIRFLOW__WEBSERVER__EXPOSE_STACKTRACE: ${AIRFLOW__WEBSERVER__EXPOSE_STACKTRACE:-True}
+  AIRFLOW__CORE__TEST_CONNECTION: ${AIRFLOW__CORE__TEST_CONNECTION:-Enabled}
+  AIRFLOW__CELERY__SSL_KEY: ${AIRFLOW__CELERY__SSL_KEY}
+  AIRFLOW__CELERY__SSL_CERT: ${AIRFLOW__CELERY__SSL_CERT}
+  AIRFLOW__CELERY__SSL_CACERT: ${AIRFLOW__CELERY__SSL_CACERT}
+  AIRFLOW__CORE__ALLOWED_DESERIALIZATION_CLASSES: |
+    airflow.*
+    unibas.common.typing.*
+  AIRFLOW_ATLAS_CONN_ID: ${AIRFLOW_ATLAS_CONN_ID}
+  AIRFLOW_ATLAS_VECTOR_DATABASE: ${AIRFLOW_ATLAS_VECTOR_DATABASE}
+  AIRFLOW_ATLAS_VECTOR_EMBEDDINGS_COLLECTION: ${AIRFLOW_ATLAS_VECTOR_EMBEDDINGS_COLLECTION}
+  AIRFLOW_ATLAS_AIRFLOW_DATABASE: ${AIRFLOW_ATLAS_AIRFLOW_DATABASE}
+  AIRFLOW_ATLAS_AIRFLOW_BATCH_COLLECTION: ${AIRFLOW_ATLAS_AIRFLOW_BATCH_COLLECTION}
+  AIRFLOW_OPEN_AI_CONN_ID: ${AIRFLOW_OPEN_AI_CONN_ID}
+  AIRFLOW_OPEN_AI_EMBEDDING_MODEL: ${AIRFLOW_OPEN_AI_EMBEDDING_MODEL}
+  AIRFLOW_OPEN_AI_LLM_MODEL: ${AIRFLOW_OPEN_AI_LLM_MODEL}
+
+x-airflow-common-volumes: &airflow-common-volumes
+  - './dags:/opt/airflow/dags'
+  - './logs:/opt/airflow/logs'
+  - './plugins:/opt/airflow/plugins'
+
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:16.0-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-airflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-airflow}
+      POSTGRES_DB: ${POSTGRES_DB:-airflow}
+    volumes:
+      - ./data:/var/lib/postgresql/data
+      - ./initdb.sql:/docker-entrypoint-initdb.d/initdb.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      retries: 5
+  airflow-webserver:
+    container_name: airflow-webserver
+    build:
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *airflow-common-environment
+    volumes: *airflow-common-volumes
+    ports:
+      - "8080:8080"
+    command: webserver
+  airflow-scheduler:
+    container_name: airflow-scheduler
+    build:
+      dockerfile: Dockerfile
+    depends_on:
+      - airflow-webserver
+    environment:
+      <<: *airflow-common-environment
+    volumes: *airflow-common-volumes
+    command: scheduler
