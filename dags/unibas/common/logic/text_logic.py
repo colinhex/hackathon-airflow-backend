@@ -1,6 +1,8 @@
 import re
 from typing import List, Dict
 
+from unibas.common.model.charset_model import Charset
+
 
 def replace_escape_sequences_with_spaces(text: str) -> str:
     return re.sub(r'[\n\t\r\f\v]+', ' ', text).strip()
@@ -33,4 +35,21 @@ def collect_sentences_into_chunks(sentences: List[str]) -> Dict[int, str]:
 
     return chunks
 
+
+def get_as_string(content: str | bytes, charset: Charset = Charset.UTF_8) -> str:
+    if isinstance(content, bytes):
+        return content.decode(charset)
+    elif isinstance(content, str):
+        return content
+    else:
+        raise TypeError(f'Unexpected type {type(content)}')
+
+
+def get_as_bytes(content: str | bytes, charset: Charset = Charset.UTF_8) -> bytes:
+    if isinstance(content, str):
+        return content.encode(charset)
+    elif isinstance(content, bytes):
+        return content
+    else:
+        raise TypeError(f'Unexpected type {type(content)}')
 
