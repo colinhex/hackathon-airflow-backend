@@ -11,7 +11,7 @@ def on_failure_callback(**context):
 
 
 sitemap_monitor_config = {
-    "dag_display_name": "Sitemap Monitor DMI UNIBAS",
+    "dag_display_name": "Sitemap Monitor dmi.unibas.ch",
     "dag_id": "sitemap_monitor_dmi_unibas_ch",
     "schedule_interval": "@daily",
     "start_date": datetime(2024, 1, 1),

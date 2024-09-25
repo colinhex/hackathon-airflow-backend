@@ -5,7 +5,7 @@ from pydantic import Tag, Field, Discriminator
 from typing_extensions import Annotated
 
 from unibas.common.model.model_mongo import MongoModel
-from unibas.common.model.model_resource import WebResource, ApiContent, ResourceVariables
+from unibas.common.model.model_resource import WebResource, ApiResource, ResourceVariables
 from unibas.common.environment.variables import ModelDumpVariables
 
 
@@ -34,14 +34,14 @@ class Job(MongoModel):
         created_at (datetime): The timestamp when the job was created.
         processing (bool): Flag indicating if the job is currently being processed.
         tries (int): The number of attempts made to process the job.
-        resources (List[Union[WebResource, ApiContent]]): List of resources associated with the job.
+        resources (List[Union[WebResource, ApiResource]]): List of resources associated with the job.
     """
     created_at: datetime = Field(default_factory=datetime.now, frozen=True)
     processing: bool = Field(default=False)
     tries: int = Field(default=0)
     resources: List[Union[
         Annotated[WebResource, Tag('web_resource')],
-        Annotated[ApiContent, Tag('api_resource')],
+        Annotated[ApiResource, Tag('api_resource')],
         # Define more resource types here.
     ]] = Field(discriminator=Discriminator(resource_discriminator))
 

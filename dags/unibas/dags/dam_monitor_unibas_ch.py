@@ -11,7 +11,7 @@ def on_failure_callback(**context):
 
 
 dam_monitor_config = {
-    "dag_display_name": "DAM Monitor BS",
+    "dag_display_name": "DAM Monitor unibas.ch",
     "dag_id": "dam_monitor_unibas_ch",
     "schedule_interval": "@weekly",
     "start_date": datetime(2024, 1, 1),
@@ -34,18 +34,13 @@ dam_monitor_config = {
 
 
 @dag(
-    dag_display_name="Dam Monitor UniBas",
-    dag_id="dam_monitor_unibas_ch",
-    schedule_interval=None,  # Adjust schedule as needed
-    start_date=datetime(2024, 1, 1),
-    catchup=False,
-    tags=["resource_monitor"],
-    default_args={
-        "owner": "unibas",
-        "retries": 2,
-        "retry_delay": timedelta(minutes=5),
-        'on_failure_callback': on_failure_callback
-    }
+    dag_display_name=dam_monitor_config['dag_display_name'],
+    dag_id=dam_monitor_config['dag_id'],
+    schedule_interval=dam_monitor_config['schedule_interval'],
+    start_date=dam_monitor_config['start_date'],
+    catchup=dam_monitor_config['catchup'],
+    tags=dam_monitor_config['tags'],
+    default_args=dam_monitor_config['default_args']
 )
 def dam_monitor():
     @task

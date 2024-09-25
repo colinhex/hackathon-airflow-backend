@@ -319,8 +319,8 @@ class WebContent(WebContentHeader):
         return super().model_dump(**kwargs)
 
 
-class ApiContent(BaseModel):
-    resource_type: Literal['api_resource'] = Field(default='api_content', frozen=True)
+class ApiResource(BaseModel):
+    resource_type: Literal['api_resource'] = Field(default='api_resource', frozen=True)
 
 
 WebResourceUnion = Union[WebResource, WebContentHeader, WebContent]

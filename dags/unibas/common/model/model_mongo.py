@@ -104,7 +104,7 @@ class MongoQuery(BaseModel):
     database: str
     collection: str
     query: 'MongoQueryDefinition' = Field(None, alias='query')
-    update: 'MongoUpdateDefinition' = Field(None, alias='query')
+    update: 'MongoUpdateDefinition' = Field(None, alias='update')
 
     def get_query_model_dump(self):
         """
