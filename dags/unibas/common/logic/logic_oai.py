@@ -7,7 +7,7 @@ from openai.types import CreateEmbeddingResponse, FileObject, Batch
 from openai.types.chat import ParsedChatCompletion
 from typing_extensions import List, Dict, Tuple, Literal, Callable
 
-from unibas.common.environment import OpenAiEnvVariables, TestEnvVariables
+from unibas.common.environment.variables import TestEnvVariables, OpenAiEnvVariables
 from unibas.common.logic.logic_math import create_distance_dataframe, sequence_matcher_distance
 from unibas.common.model.model_openai import OpenAiEmbeddings, OpenAiFeatureResponse, OpenAiBatchCompletionEntries
 from unibas.common.model.model_parsed import TextChunks

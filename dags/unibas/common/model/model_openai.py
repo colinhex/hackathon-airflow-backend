@@ -184,15 +184,6 @@ class OpenAiBatchCompletionEntries(BaseModel):
         """
         return '\n'.join([e.model_dump_json() for e in self.entries.values()])
 
-    def to_batch_file(self) -> bytes:
-        """
-        Convert the batch completion entries to a byte string.
-
-        Returns:
-            bytes: The byte string representation of the batch completion entries.
-        """
-        return '\n'.join([e.model_dump_json() for e in self.entries.values()]).encode('utf-8')
-
 
 class OpenAiFeatureResponse(BaseModel):
     """
