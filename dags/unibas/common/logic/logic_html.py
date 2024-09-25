@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 from pydantic import AnyUrl
 
-from unibas.common.logic.url_logic import UrlParseResult, parse_absolute_urls
+from unibas.common.logic.logic_url import UrlParseResult, parse_absolute_urls
 
 
 def get_soup(html: str) -> BeautifulSoup:

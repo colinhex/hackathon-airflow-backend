@@ -1,6 +1,6 @@
 import unittest
 
-from unibas.common.logic.math_logic import create_distance_dataframe, sequence_matcher_distance
+from unibas.common.logic.logic_math import create_distance_dataframe, sequence_matcher_distance
 
 
 class TestMathLogic(unittest.TestCase):

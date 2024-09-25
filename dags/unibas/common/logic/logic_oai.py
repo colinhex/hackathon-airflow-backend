@@ -8,10 +8,10 @@ from openai.types.chat import ParsedChatCompletion
 from typing_extensions import List, Dict, Tuple, Literal, Callable
 
 from unibas.common.environment import OpenAiEnvVariables, TestEnvVariables
-from unibas.common.logic.math_logic import create_distance_dataframe, sequence_matcher_distance
-from unibas.common.model.oai_model import OpenAiEmbeddings, OpenAiFeatureResponse, OpenAiBatchCompletionEntries
-from unibas.common.model.parsed_model import TextChunks
-from unibas.common.model.prompt_model import create_feature_extraction_messages, FACULTIES, INTENDED_AUDIENCE, \
+from unibas.common.logic.logic_math import create_distance_dataframe, sequence_matcher_distance
+from unibas.common.model.model_openai import OpenAiEmbeddings, OpenAiFeatureResponse, OpenAiBatchCompletionEntries
+from unibas.common.model.model_parsed import TextChunks
+from unibas.common.model.model_prompt import create_feature_extraction_messages, FACULTIES, INTENDED_AUDIENCE, \
     DEPARTMENTS, ADMINISTRATIVE_SERVICES, DEGREE_LEVELS, TOPICS, INFORMATION_TYPE
 
 

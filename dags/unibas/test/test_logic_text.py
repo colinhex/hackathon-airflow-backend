@@ -1,6 +1,6 @@
 import unittest
 
-from unibas.common.logic.text_logic import (
+from unibas.common.logic.logic_text import (
     collect_sentences_into_chunks,
     get_as_string,
     get_as_bytes,
@@ -12,7 +12,7 @@ from unibas.common.logic.text_logic import (
     nlp_split_into_sentences,
     clean_and_split_text
 )
-from unibas.common.model.charset_model import Charset
+from unibas.common.model.model_charset import Charset
 
 
 class TestTextLogic(unittest.TestCase):

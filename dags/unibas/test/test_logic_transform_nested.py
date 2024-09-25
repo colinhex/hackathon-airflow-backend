@@ -1,5 +1,5 @@
 import unittest
-from unibas.common.logic.utility import transform_nested
+from unibas.common.logic.logic_utility import transform_nested
 
 
 class TestTransformNested(unittest.TestCase):

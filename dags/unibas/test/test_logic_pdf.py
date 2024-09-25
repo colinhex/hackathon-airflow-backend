@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import MagicMock
 
-from unibas.common.logic.pdf_logic import (
+from unibas.common.logic.logic_pdf import (
     parse_pdf_author,
     parse_pdf_date,
     parse_pdf_description,

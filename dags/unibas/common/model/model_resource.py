@@ -5,11 +5,11 @@ from urllib.parse import urlparse
 from aiohttp import ClientResponse
 from pydantic import BaseModel, AnyHttpUrl, Field, ConfigDict, AnyUrl
 
-from unibas.common.model.charset_model import Charset
-from unibas.common.model.http_model import HttpCode
-from unibas.common.model.mime_model import MimeType, is_in_mime_type_group, JSON_MIME_TYPE, TEXT_MIME_TYPE, \
+from unibas.common.model.model_charset import Charset
+from unibas.common.model.model_http import HttpCode
+from unibas.common.model.model_mime_type import MimeType, is_in_mime_type_group, JSON_MIME_TYPE, TEXT_MIME_TYPE, \
     BINARY_MIME_TYPE
-from unibas.common.model.mongo_model import MongoModel
+from unibas.common.model.model_mongo import MongoModel
 from unibas.common.environment import ModelDumpVariables, ResourceVariables
 
 

@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from pydantic import AnyUrl
 from toolz import pipe, frequencies
 
-from unibas.common.model.parsed_model import UrlParseResult
+from unibas.common.model.model_parsed import UrlParseResult
 
 __DEFAULT_URI_SCHEME = 'https'
 

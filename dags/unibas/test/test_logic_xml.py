@@ -1,7 +1,7 @@
 import unittest
 import unittest.mock
 
-from unibas.common.logic.xml_logic import (
+from unibas.common.logic.logic_xml import (
     get_xml_soup, is_sitemap, is_nested_sitemap,
     get_web_resources_from_sitemap, parse_web_resources_from_sitemap
 )

@@ -2,7 +2,7 @@ import unittest
 
 from bs4 import BeautifulSoup
 
-from unibas.common.logic.html_logic import (
+from unibas.common.logic.logic_html import (
     get_soup, parse_html_title, parse_html_author, parse_html_date,
     parse_html_description, parse_html_keywords, get_all_text_from_html_body
 )

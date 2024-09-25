@@ -6,8 +6,8 @@ from typing import Dict, Optional, List, Set, Tuple
 from pydantic import Field, BaseModel, AnyUrl
 from typing_extensions import Union, Literal
 
-from unibas.common.model.mongo_model import MongoModel
-from unibas.common.model.resource_model import WebContent, WebResource
+from unibas.common.model.model_mongo import MongoModel
+from unibas.common.model.model_resource import WebContent, WebResource
 
 
 # #################################################################################################

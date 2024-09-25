@@ -5,10 +5,10 @@ from pydantic import AnyUrl
 from toolz import concatv
 from typing_extensions import Dict, List
 
-from unibas.common.logic.text_logic import get_as_string
-from unibas.common.model.charset_model import Charset
-from unibas.common.model.resource_model import WebResource, WebContent
-from unibas.common.logic.web_client import fetch_resource_batch
+from unibas.common.logic.logic_text import get_as_string
+from unibas.common.model.model_charset import Charset
+from unibas.common.model.model_resource import WebResource, WebContent
+from unibas.common.logic.logic_web_client import fetch_resource_batch
 
 
 def get_xml_soup(xml: str, charset: Charset = Charset.UTF_8) -> BeautifulSoup:

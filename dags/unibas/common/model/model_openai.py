@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from typing_extensions import List
 
 from unibas.common.environment import OpenAiEnvVariables
-from unibas.common.model.prompt_model import create_feature_extraction_messages
+from unibas.common.model.model_prompt import create_feature_extraction_messages
 
 
 class OpenAiEmbedding(BaseModel):

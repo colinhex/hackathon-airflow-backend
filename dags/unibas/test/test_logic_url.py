@@ -4,9 +4,9 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from pydantic import AnyUrl
 
-from unibas.common.logic.url_logic import href_is_different_domain, get_href_netloc, get_target_scheme, \
+from unibas.common.logic.logic_url import href_is_different_domain, get_href_netloc, get_target_scheme, \
     get_absolute_url, absolute_url_from_href, find_hrefs_in_soup, parse_absolute_urls
-from unibas.common.model.parsed_model import UrlParseResult
+from unibas.common.model.model_parsed import UrlParseResult
 
 
 class TestUrlLogic(unittest.TestCase):

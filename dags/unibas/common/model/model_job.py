@@ -4,8 +4,8 @@ from typing import Union, List
 from pydantic import Tag, Field, Discriminator
 from typing_extensions import Annotated
 
-from unibas.common.model.mongo_model import MongoModel
-from unibas.common.model.resource_model import WebResource, ApiResource, ResourceVariables
+from unibas.common.model.model_mongo import MongoModel
+from unibas.common.model.model_resource import WebResource, ApiResource, ResourceVariables
 from unibas.common.environment import ModelDumpVariables
 
 

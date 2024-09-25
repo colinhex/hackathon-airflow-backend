@@ -6,7 +6,7 @@ from typing import Iterable, AsyncGenerator, List
 import certifi
 from aiohttp import ClientSession, ClientError
 
-from unibas.common.model.resource_model import WebResource, WebContent
+from unibas.common.model.model_resource import WebResource, WebContent
 from unibas.common.misc import async_partition
 
 __SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())

@@ -1,12 +1,12 @@
 import unittest
 from datetime import datetime
 
-from unibas.common.model.charset_model import Charset
-from unibas.common.model.http_model import HttpCode
-from unibas.common.model.parsed_model import ParsedWebContentXmlSitemapResult, ParsedWebContentHtml, ParsedWebContentPdf
-from unibas.common.model.resource_model import WebContent
-from unibas.common.model.mime_model import MimeType
-from unibas.common.logic.parse_logic import parse
+from unibas.common.model.model_charset import Charset
+from unibas.common.model.model_http import HttpCode
+from unibas.common.model.model_parsed import ParsedWebContentXmlSitemapResult, ParsedWebContentHtml, ParsedWebContentPdf
+from unibas.common.model.model_resource import WebContent
+from unibas.common.model.model_mime_type import MimeType
+from unibas.common.logic.logic_parse import parse
 
 
 class TestSitemapParsing(unittest.TestCase):

@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field as PydanticField, ConfigDict, AfterValidat
 from typing_extensions import Optional, Union, Any, Dict, List
 
 from unibas.common.environment import ModelDumpVariables
-from unibas.common.logic.utility import transform_nested
+from unibas.common.logic.logic_utility import transform_nested
 
 
 def object_id_validate(v: ObjectId | str) -> ObjectId:

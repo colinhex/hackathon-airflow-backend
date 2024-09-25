@@ -1,12 +1,12 @@
 from toolz import pipe
 
-from unibas.common.model.mime_model import *
-from unibas.common.model.parsed_model import *
+from unibas.common.model.model_mime_type import *
+from unibas.common.model.model_parsed import *
 
-from unibas.common.logic.html_logic import *
-from unibas.common.logic.text_logic import *
-from unibas.common.logic.xml_logic import *
-from unibas.common.logic.pdf_logic import *
+from unibas.common.logic.logic_html import *
+from unibas.common.logic.logic_text import *
+from unibas.common.logic.logic_xml import *
+from unibas.common.logic.logic_pdf import *
 
 
 def parse(content: WebContent) -> 'ParsedContentUnion':

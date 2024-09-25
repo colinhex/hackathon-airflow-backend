@@ -5,7 +5,7 @@ from pymongo.results import InsertManyResult, UpdateResult, DeleteResult
 from typing_extensions import Dict, Any, List, Optional
 
 from unibas.common.environment import MongoAtlasEnvVariables, TestEnvVariables
-from unibas.common.model.mongo_model import MongoQuery
+from unibas.common.model.model_mongo import MongoQuery
 
 FindResult = List[Dict[str, Any]]
 FindOneResult = Optional[Dict[str, Any]]

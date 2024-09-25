@@ -5,7 +5,7 @@ from typing import List
 
 import nltk
 
-from unibas.common.model.charset_model import Charset
+from unibas.common.model.model_charset import Charset
 
 
 def download_nltk_data():
@@ -21,7 +21,7 @@ def download_nltk_data():
 
 download_nltk_data()
 
-from unibas.common.model.parsed_model import TextChunks
+from unibas.common.model.model_parsed import TextChunks
 
 
 def collect_sentences_into_chunks(sentences: List[str], max_chunk_size: int = 8000) -> TextChunks:
