@@ -137,3 +137,8 @@ MongoUpdateDefinition = Optional[Union[
     List[Union[MongoModel, Dict[str, Any]]],
     MongoModel
 ]]
+
+
+FindResult = List[Dict[str, Any]]
+FindOneResult = Optional[Dict[str, Any]]
+

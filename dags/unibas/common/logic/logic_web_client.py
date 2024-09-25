@@ -13,6 +13,19 @@ __SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 
 async def async_fetch_resource(session: ClientSession, resource: WebResource) -> WebContent:
+    """
+    Fetch a web resource asynchronously.
+
+    Args:
+        session (ClientSession): The aiohttp client session to use for the request.
+        resource (WebResource): The web resource to fetch.
+
+    Returns:
+        WebContent: The fetched web content.
+
+    Raises:
+        ValueError: If there is an error fetching the content.
+    """
     print(f'Outgoing Request: GET {resource.model_dump_json()}')
 
     try:
@@ -27,12 +40,31 @@ async def async_fetch_resource(session: ClientSession, resource: WebResource) ->
 
 
 async def async_fetch_resources(resources: Iterable[WebResource], batch_size=25) -> AsyncGenerator[List[WebContent], None]:
+    """
+    Fetch multiple web resources asynchronously in batches.
+
+    Args:
+        resources (Iterable[WebResource]): The web resources to fetch.
+        batch_size (int, optional): The number of resources to fetch in each batch. Defaults to 25.
+
+    Yields:
+        List[WebContent]: A list of fetched web content for each batch.
+    """
     async with ClientSession() as _session:
         async for batch in async_partition(resources, batch_size):
             yield await asyncio_gather(*[async_fetch_resource(_session, url) for url in batch])
 
 
 def fetch_resource(resource: WebResource) -> WebContent:
+    """
+    Fetch a single web resource.
+
+    Args:
+        resource (WebResource): The web resource to fetch.
+
+    Returns:
+        WebContent: The fetched web content.
+    """
     async def get_data():
         async with ClientSession() as session:
             return await async_fetch_resource(session, resource)
@@ -40,6 +72,16 @@ def fetch_resource(resource: WebResource) -> WebContent:
 
 
 def fetch_resource_batch(resources: Iterable[WebResource], batch_size=25) -> List[WebContent]:
+    """
+    Fetch multiple web resources and handles asynchronous execution.
+
+    Args:
+        resources (Iterable[WebResource]): The web resources to fetch.
+        batch_size (int, optional): The number of resources to fetch in each batch. Defaults to 25.
+
+    Returns:
+        List[WebContent]: A list of fetched web content.
+    """
     async def get_resources():
         responses = []
         async for resource in async_fetch_resources(resources, batch_size):

@@ -14,6 +14,15 @@ from unibas.common.environment.variables import ModelDumpVariables, ResourceVari
 
 
 class WebResource(MongoModel):
+    """
+    Model representing a web resource.
+
+    Attributes:
+        model_config (ConfigDict): Configuration for the model.
+        resource_type (Literal['web_resource']): The type of the resource, fixed to 'web_resource'.
+        loc (AnyHttpUrl): The URL of the web resource.
+        lastmod (Optional[datetime]): The last modification date of the web resource.
+    """
     model_config = ConfigDict(**MongoModel.model_config)
     resource_type: Literal['web_resource'] = Field(default='web_resource', frozen=True)
     loc: AnyHttpUrl
@@ -21,15 +30,45 @@ class WebResource(MongoModel):
 
     @classmethod
     def from_iso_string(cls, loc: str, lastmod: str):
+        """
+        Create a WebResource instance from ISO formatted strings.
+
+        Args:
+            loc (str): The URL of the web resource.
+            lastmod (str): The last modification date in ISO format.
+
+        Returns:
+            WebResource: The created WebResource instance.
+        """
         return WebResource(loc=loc, lastmod=datetime.fromisoformat(lastmod))
 
     def was_modified_after(self, date: datetime | str, accept_none=False) -> bool:
+        """
+        Check if the resource was modified after a given date.
+
+        Args:
+            date (datetime | str): The date to compare with.
+            accept_none (bool, optional): Whether to accept None as a valid date. Defaults to False.
+
+        Returns:
+            bool: True if the resource was modified after the given date, False otherwise.
+        """
         if accept_none and date is None:
             return True
         compare: datetime = datetime.fromisoformat(date) if isinstance(date, str) else date
         return compare < self.lastmod
 
     def was_modified_before(self, date: datetime | str | None, accept_none=False) -> bool:
+        """
+        Check if the resource was modified before a given date.
+
+        Args:
+            date (datetime | str | None): The date to compare with.
+            accept_none (bool, optional): Whether to accept None as a valid date. Defaults to False.
+
+        Returns:
+            bool: True if the resource was modified before the given date, False otherwise.
+        """
         if accept_none and date is None:
             return True
         compare: datetime = datetime.fromisoformat(date) if isinstance(date, str) else date
@@ -37,6 +76,15 @@ class WebResource(MongoModel):
         return compare.astimezone(tz=timezone.utc) > self.lastmod.astimezone(tz=timezone.utc)
 
     def is_same_host(self, domain: str | AnyHttpUrl | 'WebResource') -> bool:
+        """
+        Check if the resource is from the same host as the given domain.
+
+        Args:
+            domain (str | AnyHttpUrl | WebResource): The domain to compare with.
+
+        Returns:
+            bool: True if the resource is from the same host, False otherwise.
+        """
         if isinstance(domain, str):
             return urlparse(domain).netloc == self.loc.host
         elif isinstance(domain, AnyHttpUrl):
@@ -45,12 +93,32 @@ class WebResource(MongoModel):
             return self.is_same_host(domain.loc)
 
     def is_sub_path_from(self, path: Union[str, AnyUrl]) -> bool:
+        """
+        Check if the resource's path is a sub-path of the given path.
+
+        Args:
+            path (Union[str, AnyUrl]): The path to compare with.
+
+        Returns:
+            bool: True if the resource's path is a sub-path, False otherwise.
+        """
         path_string = str(path)
         if path_string.startswith('/'):
             return str(self.loc.path).startswith(path)
         return str(self.loc).startswith(path_string)
 
     def is_sub_path_from_any(self, path: List[Union[str, AnyUrl]] | None, accept_none=True, accept_empty=True) -> bool:
+        """
+        Check if the resource's path is a sub-path of any given paths.
+
+        Args:
+            path (List[Union[str, AnyUrl]] | None): The list of paths to compare with.
+            accept_none (bool, optional): Whether to accept None as a valid path. Defaults to True.
+            accept_empty (bool, optional): Whether to accept an empty list as valid. Defaults to True.
+
+        Returns:
+            bool: True if the resource's path is a sub-path of any given paths, False otherwise.
+        """
         if (path is None and accept_none) or (len(path) == 0 and accept_empty):
             return True
         return any([self.is_sub_path_from(p) for p in path])
@@ -62,6 +130,18 @@ class WebResource(MongoModel):
             modified_after: datetime | None = None,
             modified_before: datetime | None = None
     ):
+        """
+        Filter a list of web resources based on paths and modification dates.
+
+        Args:
+            resources (List[WebResource]): The list of web resources to filter.
+            filter_paths (List[Union[str, AnyUrl]] | None, optional): The paths to filter by. Defaults to None.
+            modified_after (datetime | None, optional): The date to filter resources modified after. Defaults to None.
+            modified_before (datetime | None, optional): The date to filter resources modified before. Defaults to None.
+
+        Returns:
+            List[WebResource]: The filtered list of web resources.
+        """
         filtered = []
         for resource in resources:
             if resource.is_sub_path_from_any(filter_paths, accept_none=True, accept_empty=True) \
@@ -71,6 +151,15 @@ class WebResource(MongoModel):
         return filtered
 
     def model_dump(self, **kwargs) -> dict[str, Any]:
+        """
+        Dump the model data to a dictionary.
+
+        Args:
+            **kwargs: Additional keyword arguments for dumping the model.
+
+        Returns:
+            dict[str, Any]: The dumped model data.
+        """
         stringify_url = kwargs.pop(ModelDumpVariables.STRINGIFY_URL, True)
         stringify_datetime = kwargs.pop(ModelDumpVariables.STRINGIFY_DATETIME, False)
 
@@ -85,6 +174,18 @@ class WebResource(MongoModel):
 
 
 class WebContent(WebResource):
+    """
+    Model representing web content, inheriting from WebResource.
+
+    Attributes:
+        model_config (ConfigDict): Configuration for the model.
+        resource_type (Literal['web_response']): The type of the resource, fixed to 'web_response'.
+        code (HttpCode): The HTTP status code of the response.
+        mime_type (MimeType): The MIME type of the content.
+        charset (Charset): The character set of the content.
+        extracted_at (datetime): The datetime when the content was extracted.
+        content (Union[bytes, str]): The content of the web resource.
+    """
     model_config = ConfigDict(**WebResource.model_config)
     model_config.update(
         use_enum_values=True,
@@ -99,6 +200,19 @@ class WebContent(WebResource):
 
     @classmethod
     async def result(cls, web_resource: WebResource, client_response: ClientResponse) -> 'WebContent':
+        """
+        Create a WebContent instance from a web resource and client response.
+
+        Args:
+            web_resource (WebResource): The web resource.
+            client_response (ClientResponse): The client response.
+
+        Returns:
+            WebContent: The created WebContent instance.
+
+        Raises:
+            ValueError: If the MIME type is unexpected.
+        """
         code: HttpCode = HttpCode.from_status_code(client_response.status)
         mime_type = MimeType.from_content_type(client_response.headers.get('Content-Type'))
         charset = Charset.from_content_type(client_response.headers.get('Content-Type'), default_to_utf8=True)
@@ -136,6 +250,15 @@ class WebContent(WebResource):
         )
 
     def model_dump(self, **kwargs) -> dict[str, Any]:
+        """
+        Dump the model data to a dictionary.
+
+        Args:
+            **kwargs: Additional keyword arguments for dumping the model.
+
+        Returns:
+            dict[str, Any]: The dumped model data.
+        """
         return super().model_dump(**kwargs)
 
 

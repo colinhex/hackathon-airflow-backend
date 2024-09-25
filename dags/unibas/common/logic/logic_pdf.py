@@ -12,6 +12,15 @@ from pydantic import BaseModel, Field
 
 
 def get_pdf_document(pdf_bytes: bytes) -> Optional[PDFDocument]:
+    """
+    Create a PDFDocument object from PDF bytes.
+
+    Args:
+        pdf_bytes (bytes): The bytes of the PDF file.
+
+    Returns:
+        Optional[PDFDocument]: The PDFDocument object if parsing is successful, None otherwise.
+    """
     fp = BytesIO(pdf_bytes)
     parser = PDFParser(fp)
     try:
@@ -24,26 +33,81 @@ def get_pdf_document(pdf_bytes: bytes) -> Optional[PDFDocument]:
 
 
 def parse_pdf_title(document: PDFDocument) -> Optional[str]:
+    """
+    Extract the title from a PDF document.
+
+    Args:
+        document (PDFDocument): The PDF document.
+
+    Returns:
+        Optional[str]: The title of the PDF document, or None if not found.
+    """
     return get_metadata_field(document, 'Title')
 
 
 def parse_pdf_author(document: PDFDocument) -> Optional[str]:
+    """
+    Extract the author from a PDF document.
+
+    Args:
+        document (PDFDocument): The PDF document.
+
+    Returns:
+        Optional[str]: The author of the PDF document, or None if not found.
+    """
     return get_metadata_field(document, 'Author')
 
 
 def parse_pdf_date(document: PDFDocument) -> Optional[str]:
+    """
+    Extract the creation date from a PDF document.
+
+    Args:
+        document (PDFDocument): The PDF document.
+
+    Returns:
+        Optional[str]: The creation date of the PDF document, or None if not found.
+    """
     return get_metadata_field(document, 'CreationDate')
 
 
 def parse_pdf_description(document: PDFDocument) -> Optional[str]:
+    """
+    Extract the description from a PDF document.
+
+    Args:
+        document (PDFDocument): The PDF document.
+
+    Returns:
+        Optional[str]: The description of the PDF document, or None if not found.
+    """
     return get_metadata_field(document, 'Subject')
 
 
 def parse_pdf_keywords(document: PDFDocument) -> Optional[str]:
+    """
+    Extract the keywords from a PDF document.
+
+    Args:
+        document (PDFDocument): The PDF document.
+
+    Returns:
+        Optional[str]: The keywords of the PDF document, or None if not found.
+    """
     return get_metadata_field(document, 'Keywords')
 
 
 def get_metadata_field(document: PDFDocument, field_name: str) -> Optional[str]:
+    """
+    Retrieve a specific metadata field from a PDF document.
+
+    Args:
+        document (PDFDocument): The PDF document.
+        field_name (str): The name of the metadata field to retrieve.
+
+    Returns:
+        Optional[str]: The value of the metadata field, or None if not found.
+    """
     if document is not None and document.info:
         info = document.info[0]  # document.info is a list of dictionaries
         if field_name in info:
@@ -92,6 +156,16 @@ def extract_text_from_pdf_bytes(
         pdf_bytes: bytes,
         parameters: Optional[PdfExtractionParams] = None
 ) -> str:
+    """
+    Extract text from PDF bytes using pdfminer3.
+
+    Args:
+        pdf_bytes (bytes): The bytes of the PDF file.
+        parameters (Optional[PdfExtractionParams]): The parameters for PDF extraction. Defaults to None.
+
+    Returns:
+        str: The extracted text from the PDF.
+    """
     if parameters is None:
         parameters = PdfExtractionParams()
     print(f'Parsing pdf size={pdf_bytes.__sizeof__()}b, parameters={parameters.model_dump_json()}')

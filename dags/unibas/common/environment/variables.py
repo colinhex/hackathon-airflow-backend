@@ -2,6 +2,15 @@ import os
 
 
 class OpenAiEnvVariables:
+    """
+    Environment variables for OpenAI configuration.
+
+    Attributes:
+        conn_id (str): The connection ID for OpenAI.
+        embedding_model (str): The embedding model to use.
+        llm_model (str): The language model to use, defaults to 'gpt-4o-mini'.
+        test_api_key (str): The API key for testing purposes.
+    """
     conn_id: str = os.getenv('AIRFLOW_OPEN_AI_CONN_ID')
     embedding_model: str = os.getenv('AIRFLOW_OPEN_AI_EMBEDDING_MODEL')
     llm_model: str = os.getenv('AIRFLOW_OPEN_AI_LLM_MODEL', 'gpt-4o-mini')
@@ -10,7 +19,17 @@ class OpenAiEnvVariables:
 
 class TestEnvVariables:
     """
-    Test environment variables, are none in the airflow environment.
+    Test environment variables, are none in the Airflow environment.
+
+    Attributes:
+        atlas_conn_string (str): The connection string for Atlas.
+        vector_database (str): The vector database name.
+        embeddings_collection (str): The embeddings collection name.
+        airflow_database (str): The Airflow database name.
+        batch_collection (str): The batch collection name.
+        open_ai_api_key (str): The API key for OpenAI.
+        embedding_model (str): The embedding model to use.
+        llm_model (str): The language model to use.
     """
     atlas_conn_string: str = os.getenv('TEST_ATLAS_CONN_STRING')
     vector_database: str = os.getenv('TEST_ATLAS_VECTOR_DATABASE')
@@ -23,6 +42,16 @@ class TestEnvVariables:
 
 
 class MongoAtlasEnvVariables:
+    """
+    Environment variables for MongoDB Atlas configuration.
+
+    Attributes:
+        conn_id (str): The connection ID for MongoDB Atlas.
+        vector_database (str): The vector database name.
+        embeddings_collection (str): The embeddings collection name.
+        airflow_database (str): The Airflow database name.
+        batch_collection (str): The batch collection name.
+    """
     conn_id: str = os.getenv('AIRFLOW_ATLAS_CONN_ID')
     vector_database: str = os.getenv('AIRFLOW_ATLAS_VECTOR_DATABASE')
     embeddings_collection: str = os.getenv('AIRFLOW_ATLAS_VECTOR_EMBEDDINGS_COLLECTION')
@@ -31,11 +60,26 @@ class MongoAtlasEnvVariables:
 
 
 class ModelDumpVariables:
+    """
+    Variables for model dumping.
+
+    Attributes:
+        STRINGIFY_DATETIME (str): Option to stringify datetime objects.
+        STRINGIFY_OBJECT_ID (str): Option to stringify object IDs.
+        STRINGIFY_URL (str): Option to stringify URLs.
+    """
     STRINGIFY_DATETIME = 'stringify_datetime'
     STRINGIFY_OBJECT_ID = 'stringify_object_id'
     STRINGIFY_URL = 'stringify_url'
 
 
 class ResourceVariables:
+    """
+    Variables for resource handling.
+
+    Attributes:
+        RESOURCE_TYPE_FIELD (str): The field name for resource type.
+        HEADER_DATE_FORMAT (str): The date format for headers.
+    """
     RESOURCE_TYPE_FIELD = "resource_type"
     HEADER_DATE_FORMAT = "%a, %d %b %Y %H:%M:%S %Z"
