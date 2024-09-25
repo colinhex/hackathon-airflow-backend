@@ -1,4 +1,4 @@
-from unibas.common.environment import TestEnvVariables, OpenAiEnvVariables, MongoAtlasEnvVariables
+from unibas.common.environment.variables import TestEnvVariables, OpenAiEnvVariables, MongoAtlasEnvVariables
 
 try:
     assert OpenAiEnvVariables.conn_id is None

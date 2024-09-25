@@ -10,7 +10,7 @@ from unibas.common.model.model_http import HttpCode
 from unibas.common.model.model_mime_type import MimeType, is_in_mime_type_group, JSON_MIME_TYPE, TEXT_MIME_TYPE, \
     BINARY_MIME_TYPE
 from unibas.common.model.model_mongo import MongoModel
-from unibas.common.environment import ModelDumpVariables, ResourceVariables
+from unibas.common.environment.variables import ModelDumpVariables, ResourceVariables
 
 
 class WebResource(MongoModel):

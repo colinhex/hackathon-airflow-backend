@@ -6,7 +6,7 @@ from typing_extensions import Annotated
 
 from unibas.common.model.model_mongo import MongoModel
 from unibas.common.model.model_resource import WebResource, ApiResource, ResourceVariables
-from unibas.common.environment import ModelDumpVariables
+from unibas.common.environment.variables import ModelDumpVariables
 
 
 def resource_discriminator(v):

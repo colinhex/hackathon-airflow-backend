@@ -4,7 +4,7 @@ from bson import ObjectId
 from pydantic import BaseModel, Field as PydanticField, ConfigDict, AfterValidator, PlainSerializer, Field
 from typing_extensions import Optional, Union, Any, Dict, List
 
-from unibas.common.environment import ModelDumpVariables
+from unibas.common.environment.variables import ModelDumpVariables
 from unibas.common.logic.logic_utility import transform_nested
 
 

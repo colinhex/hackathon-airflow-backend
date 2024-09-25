@@ -1,7 +1,7 @@
 import asyncio
 import unittest
 
-from unibas.common.misc import async_partition
+from unibas.common.logic.logic_utility import async_partition
 
 
 class TestAsyncPartition(unittest.TestCase):
