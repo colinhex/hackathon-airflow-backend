@@ -108,10 +108,6 @@ until curl --output /dev/null --silent --head --fail http://localhost:8080; do
     sleep 3 &
     spinner $!
 done
-until curl --output /dev/null --silent --head --fail http://localhost:8080; do
-    sleep 3 &
-    spinner $!
-done
 echo "Connected to airflow webserver instance successfully!"
 echo "Creating administrative user..."
 
