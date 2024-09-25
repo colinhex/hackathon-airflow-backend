@@ -2,6 +2,10 @@ from enum import Enum
 
 
 class Charset(str, Enum):
+    """
+    Enum representing various character sets.
+    """
+
     UNKNOWN = 'unknown'
     UTF_8 = 'utf-8'
     UTF_16 = 'utf-16'
@@ -27,16 +31,47 @@ class Charset(str, Enum):
 
     @staticmethod
     def from_name(name: str):
+        """
+        Get a Charset enum member from a string name.
+
+        Args:
+            name (str): The name of the charset.
+
+        Returns:
+            Charset: The corresponding Charset enum member.
+
+        Raises:
+            KeyError: If the name does not correspond to any Charset.
+        """
         return Charset[name.replace('-', '_').upper()]
 
     @staticmethod
     def default_to_charset(default_to_utf8: bool = False) -> 'Charset':
+        """
+        Get the default Charset.
+
+        Args:
+            default_to_utf8 (bool): If True, return Charset.UTF_8, otherwise return Charset.UNKNOWN.
+
+        Returns:
+            Charset: The default Charset.
+        """
         if default_to_utf8:
             return Charset.UTF_8
         return Charset.UNKNOWN
 
     @staticmethod
     def from_content_type(content_type: str, default_to_utf8: bool = False) -> 'Charset':
+        """
+        Get a Charset enum member from a content type string.
+
+        Args:
+            content_type (str): The content type string.
+            default_to_utf8 (bool): If True, return Charset.UTF_8 if content_type is None or invalid.
+
+        Returns:
+            Charset: The corresponding Charset enum member or the default Charset.
+        """
         if content_type is None:
             return Charset.default_to_charset(default_to_utf8=default_to_utf8)
         charset: str | None = content_type.split(';')[1].strip() if ';' in content_type else None
@@ -46,6 +81,10 @@ class Charset(str, Enum):
 
     @staticmethod
     def get_all():
+        """
+        Get a list of all Charset values.
+
+        Returns:
+            list: A list of all Charset values.
+        """
         return list(map(lambda x: x.value, Charset))
-
-

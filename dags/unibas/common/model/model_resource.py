@@ -3,7 +3,7 @@ from typing import Any, Literal, Union, Optional, List
 from urllib.parse import urlparse
 
 from aiohttp import ClientResponse
-from pydantic import BaseModel, AnyHttpUrl, Field, ConfigDict, AnyUrl
+from pydantic import BaseModel, AnyHttpUrl, Field, ConfigDict, AnyUrl, ValidationError, field_validator
 
 from unibas.common.model.model_charset import Charset
 from unibas.common.model.model_http import HttpCode
@@ -14,6 +14,7 @@ from unibas.common.environment.variables import ModelDumpVariables, ResourceVari
 
 
 class WebResource(MongoModel):
+    model_config = ConfigDict(**MongoModel.model_config)
     resource_type: Literal['web_resource'] = Field(default='web_resource', frozen=True)
     loc: AnyHttpUrl
     lastmod: Optional[datetime] = Field(default=None)
@@ -32,6 +33,7 @@ class WebResource(MongoModel):
         if accept_none and date is None:
             return True
         compare: datetime = datetime.fromisoformat(date) if isinstance(date, str) else date
+        print(f'Comparing {str(compare.astimezone(tz=timezone.utc))} and {str(self.lastmod.astimezone(tz=timezone.utc))}')
         return compare.astimezone(tz=timezone.utc) > self.lastmod.astimezone(tz=timezone.utc)
 
     def is_same_host(self, domain: str | AnyHttpUrl | 'WebResource') -> bool:
@@ -42,20 +44,29 @@ class WebResource(MongoModel):
         elif isinstance(domain, WebResource):
             return self.is_same_host(domain.loc)
 
-    def is_sub_path_from(self, path: str) -> bool:
-        return str(self.loc.path).startswith(path)
+    def is_sub_path_from(self, path: Union[str, AnyUrl]) -> bool:
+        path_string = str(path)
+        if path_string.startswith('/'):
+            return str(self.loc.path).startswith(path)
+        return str(self.loc).startswith(path_string)
 
-    def is_sub_path_from_any(self, path: List[str] | None, accept_none=True, accept_empty=True) -> bool:
+    def is_sub_path_from_any(self, path: List[Union[str, AnyUrl]] | None, accept_none=True, accept_empty=True) -> bool:
         if (path is None and accept_none) or (len(path) == 0 and accept_empty):
             return True
         return any([self.is_sub_path_from(p) for p in path])
 
     @staticmethod
-    def filter(resources: List['WebResource'], filter_paths: List[AnyUrl] | None = None, modified_after: datetime | None = None):
+    def filter(
+            resources: List['WebResource'],
+            filter_paths: List[Union[str, AnyUrl]] | None = None,
+            modified_after: datetime | None = None,
+            modified_before: datetime | None = None
+    ):
         filtered = []
         for resource in resources:
             if resource.is_sub_path_from_any(filter_paths, accept_none=True, accept_empty=True) \
-                    and resource.was_modified_before(modified_after, accept_none=True):
+                    and resource.was_modified_after(modified_after, accept_none=True)\
+                    and resource.was_modified_before(modified_before, accept_none=True):
                 filtered.append(resource)
         return filtered
 
@@ -74,7 +85,11 @@ class WebResource(MongoModel):
 
 
 class WebContent(WebResource):
-    model_config = ConfigDict(use_enum_values=True)
+    model_config = ConfigDict(**WebResource.model_config)
+    model_config.update(
+        use_enum_values=True,
+    )
+
     resource_type: Literal['web_response'] = Field(default='web_response', frozen=True)
     code: HttpCode = Field(default=HttpCode.UNKNOWN)
     mime_type: MimeType = Field(default=MimeType.UNKNOWN)
@@ -110,7 +125,7 @@ class WebContent(WebResource):
             raise ValueError(f'Unexpected mime type: {client_response.headers.get("Content-Type")}')
 
         return cls(
-            loc=str(web_resource.loc),
+            loc=web_resource.loc,
             lastmod=web_resource.lastmod if (
                     not update_last_mod and web_resource.lastmod is not None
             ) else lastmod,
@@ -119,6 +134,9 @@ class WebContent(WebResource):
             charset=charset,
             content=content
         )
+
+    def model_dump(self, **kwargs) -> dict[str, Any]:
+        return super().model_dump(**kwargs)
 
 
 class ApiResource(BaseModel):
