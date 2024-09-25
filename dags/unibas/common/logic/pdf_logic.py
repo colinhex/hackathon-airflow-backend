@@ -1,13 +1,13 @@
 from io import BytesIO, StringIO
 from typing import Optional, Any
 
-from pdfminer.converter import TextConverter
-from pdfminer.layout import LAParams
-from pdfminer.pdfdocument import PDFDocument
-from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
-from pdfminer.pdfpage import PDFPage
-from pdfminer.pdfparser import PDFParser
-from pdfminer.psparser import PSSyntaxError
+from pdfminer3.converter import (TextConverter)
+from pdfminer3.layout import LAParams
+from pdfminer3.pdfdocument import PDFDocument
+from pdfminer3.pdfinterp import PDFResourceManager, PDFPageInterpreter
+from pdfminer3.pdfpage import PDFPage
+from pdfminer3.pdfparser import PDFParser
+from pdfminer3.psparser import PSSyntaxError
 from pydantic import BaseModel, Field
 
 
@@ -56,7 +56,7 @@ def get_metadata_field(document: PDFDocument, field_name: str) -> Optional[str]:
 
 class PdfExtractionParams(BaseModel):
     """
-    Parameters for PDF extraction using pdfminer. Change for a specific pdf source.
+    Parameters for PDF extraction using pdfminer3. Change for a specific pdf source.
 
     Attributes:
         page_numbers (Any): Specific page numbers to extract. Can be a set of page numbers or None for all pages.
@@ -92,9 +92,9 @@ def extract_text_from_pdf_bytes(
         pdf_bytes: bytes,
         parameters: Optional[PdfExtractionParams] = None
 ) -> str:
-    print(f'Parsing pdf size={pdf_bytes.__sizeof__()}b, parameters={parameters.model_dump_json()}')
     if parameters is None:
         parameters = PdfExtractionParams()
+    print(f'Parsing pdf size={pdf_bytes.__sizeof__()}b, parameters={parameters.model_dump_json()}')
 
     resource_manager = PDFResourceManager(caching=parameters.resource_manager_caching)
 

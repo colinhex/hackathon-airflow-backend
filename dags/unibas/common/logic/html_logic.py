@@ -9,7 +9,12 @@ def get_soup(html: str) -> BeautifulSoup:
 
 
 def parse_html_title(soup: BeautifulSoup) -> str | None:
-    return soup.title.string if soup.title else soup.find('h1').text if soup.find('h1') else None
+    title = soup.title.string if soup.title else soup.find('h1').text if soup.find('h1') else None
+    if title is None:
+        h1 = soup.find('h1')
+        if h1 is not None:
+            title = h1.text
+    return title
 
 
 def parse_html_author(soup: BeautifulSoup) -> str | None:
@@ -33,4 +38,8 @@ def parse_html_links(url: AnyUrl, soup: BeautifulSoup) -> UrlParseResult:
 
 
 def get_all_text_from_html_body(soup: BeautifulSoup) -> str:
-    return soup.find('body').text
+    body: BeautifulSoup = soup.find('body')
+    if not body:
+        return ''
+    else:
+        return body.text.strip()

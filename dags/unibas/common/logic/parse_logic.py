@@ -235,10 +235,7 @@ def parse_html_body(content: WebContent) -> 'TextChunks':
                 raise ValueError()
             return pipe(
                 get_all_text_from_html_body(soup),
-                replace_escape_sequences_with_spaces,
-                contract_consecutive_whitespaces,
-                split_into_sentences,
-                collect_sentences_into_chunks
+                clean_and_split_text
             )
 
 
@@ -301,10 +298,7 @@ def parse_pdf_body(content: WebContent) -> 'TextChunks':
                 raise ValueError()
             return pipe(
                 extract_text_from_pdf_bytes(pdf_bytes),
-                replace_escape_sequences_with_spaces,
-                contract_consecutive_whitespaces,
-                split_into_sentences,
-                collect_sentences_into_chunks
+                clean_and_split_text
             )
 
 

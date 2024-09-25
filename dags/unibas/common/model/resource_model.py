@@ -10,7 +10,7 @@ from unibas.common.model.http_model import HttpCode
 from unibas.common.model.mime_model import MimeType, is_in_mime_type_group, JSON_MIME_TYPE, TEXT_MIME_TYPE, \
     BINARY_MIME_TYPE
 from unibas.common.model.mongo_model import MongoModel
-from unibas.common.constants import ModelDump, ResourceConstants
+from unibas.common.environment import ModelDumpVariables, ResourceVariables
 
 
 class WebResource(MongoModel):
@@ -60,8 +60,8 @@ class WebResource(MongoModel):
         return filtered
 
     def model_dump(self, **kwargs) -> dict[str, Any]:
-        stringify_url = kwargs.pop(ModelDump.STRINGIFY_URL, True)
-        stringify_datetime = kwargs.pop(ModelDump.STRINGIFY_DATETIME, False)
+        stringify_url = kwargs.pop(ModelDumpVariables.STRINGIFY_URL, True)
+        stringify_datetime = kwargs.pop(ModelDumpVariables.STRINGIFY_DATETIME, False)
 
         dump = super().model_dump(**kwargs)
 
@@ -90,7 +90,7 @@ class WebContent(WebResource):
 
         lastmod = client_response.headers.get('Last-Modified')
         if lastmod is not None:
-            lastmod = datetime.strptime(lastmod, ResourceConstants.HEADER_DATE_FORMAT)
+            lastmod = datetime.strptime(lastmod, ResourceVariables.HEADER_DATE_FORMAT)
         else:
             lastmod = None
 

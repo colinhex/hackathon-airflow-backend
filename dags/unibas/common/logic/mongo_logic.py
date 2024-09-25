@@ -4,7 +4,7 @@ from pymongo.collection import Collection
 from pymongo.results import InsertManyResult, UpdateResult, DeleteResult
 from typing_extensions import Dict, Any, List, Optional
 
-from unibas.common.constants import MongoAtlas
+from unibas.common.environment import MongoAtlasEnvVariables, TestEnvVariables
 from unibas.common.model.mongo_model import MongoQuery
 
 FindResult = List[Dict[str, Any]]
@@ -12,7 +12,10 @@ FindOneResult = Optional[Dict[str, Any]]
 
 
 def _get_mongo_client() -> MongoClient:
-    return MongoHook(conn_id=MongoAtlas.conn_id).get_conn()
+    test_conn_string = TestEnvVariables.atlas_conn_string
+    if test_conn_string is not None:
+        return MongoClient(test_conn_string)
+    return MongoHook(conn_id=MongoAtlasEnvVariables.conn_id).get_conn()
 
 
 def _on_collection(mongo_query: MongoQuery) -> Collection:

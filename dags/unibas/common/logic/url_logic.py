@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Tuple
 from urllib.parse import ParseResult, urlparse
 
 from bs4 import BeautifulSoup
@@ -18,7 +18,6 @@ def href_is_different_domain(origin: AnyUrl, href_parse_result: ParseResult):
 
 def get_href_netloc(origin: AnyUrl, href_parse_result: ParseResult) -> str:
     if href_is_different_domain(origin, href_parse_result):
-        print('href_is_different_domain_netloc', href_parse_result.netloc)
         return href_parse_result.netloc
     else:
         return origin.host
@@ -40,15 +39,15 @@ def absolute_url_from_href(origin_url: AnyUrl, href: str) -> str:
     return get_absolute_url(origin_url, urlparse(href))
 
 
-def absolute_url_mapping(origin: AnyUrl) -> Callable[[List[str]], Dict[str, int]]:
+def absolute_url_mapping(origin: AnyUrl) -> Callable[[List[str]], List[Tuple[AnyUrl, int]]]:
     return lambda hrefs: pipe(
         hrefs,
         lambda _hrefs: list(map(
             lambda href: absolute_url_from_href(origin, href), _hrefs
         )),
-        AnyUrl,
+        lambda _hrefs: [AnyUrl(href) for href in _hrefs],
         frequencies,
-        lambda freq: [{'loc': k, 'freq': v} for k, v in freq.items() ]
+        lambda freq: [( k, v) for k, v in freq.items()]
     )
 
 
@@ -57,12 +56,11 @@ def find_hrefs_in_soup(soup: BeautifulSoup) -> List[str]:
 
 
 def parse_absolute_urls(origin: AnyUrl, soup: BeautifulSoup) -> UrlParseResult:
-    urls_with_frequencies: Dict[AnyUrl, int] = pipe(
-        soup,
-        find_hrefs_in_soup,
-        absolute_url_mapping(origin)
-    )
     return UrlParseResult(
         origin=origin,
-        urls=[(link, freq) for link, freq in urls_with_frequencies.items()],
+        urls=pipe(
+            soup,
+            find_hrefs_in_soup,
+            absolute_url_mapping(origin)
+        )
     )

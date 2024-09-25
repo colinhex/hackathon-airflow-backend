@@ -4,8 +4,8 @@ from bson import ObjectId
 from pydantic import BaseModel, Field as PydanticField, ConfigDict, AfterValidator, PlainSerializer, Field
 from typing_extensions import Optional, Union, Any, Dict, List
 
-from unibas.common.constants import ModelDump
-from unibas.common.logic.utilities import transform_nested
+from unibas.common.environment import ModelDumpVariables
+from unibas.common.logic.utility import transform_nested
 
 
 def object_id_validate(v: ObjectId | str) -> ObjectId:
@@ -39,9 +39,9 @@ class MongoModel(BaseModel):
         Overwritten model dump. Call with custom kwarg STRINGIFY_OBJECT_ID=True when serialising for XComArg
         """
         kwargs.setdefault('by_alias', True)
-        stringify_object_id: bool = kwargs.pop(ModelDump.STRINGIFY_OBJECT_ID, False)
+        stringify_object_id: bool = kwargs.pop(ModelDumpVariables.STRINGIFY_OBJECT_ID, False)
         dump = super().model_dump(**kwargs)
-        if not stringify_object_id:
+        if not stringify_object_id and '_id' in dump:
             dump['_id'] = ObjectId(dump.pop('_id'))
         return dump
 
