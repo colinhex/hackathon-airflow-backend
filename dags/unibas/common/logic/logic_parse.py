@@ -25,8 +25,7 @@ def parse(content: WebContent) -> 'ParsedContentUnion':
     """
     if isinstance(content, WebContent):
         try:
-            started_parsing_at: datetime = datetime.now()
-            return parse_web_content(content).add_parse_time(started_parsing_at)
+            return parse_web_content(content)
         except NotImplementedError as nie:
             return ParsedWebContentFailure.create(content=content, reason=nie)
         except Exception as exception:

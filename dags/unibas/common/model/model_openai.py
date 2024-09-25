@@ -108,6 +108,21 @@ class OpenAiEmbeddings(BaseModel):
         """
         return list(map(lambda q: q.text_chunk, sorted(self.embeddings, key=lambda e: e.chunk_index)))
 
+    def model_dump(self, **kwargs) -> Dict:
+        """
+        Get the dictionary representation of the model.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            dict: The dictionary representation of the model.
+        """
+        return {
+            **super().model_dump(**kwargs),
+            'embeddings': {k: v.model_dump(**kwargs) for k, v in self.embeddings.items()}
+        }
+
 
 class OpenAiBatchCompletionEntryBody(BaseModel):
     """
@@ -153,6 +168,21 @@ class OpenAiBatchCompletionEntry(BaseModel):
         """
         body = OpenAiBatchCompletionEntryBody(messages=message_generator(text_chunk))
         return OpenAiBatchCompletionEntry(custom_id=str(chunk_index), body=body)
+
+    def model_dump(self, **kwargs) -> Dict:
+        """
+        Get the JSON string representation of the model.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            str: The JSON string representation of the model.
+        """
+        return {
+            **super().model_dump(**kwargs),
+            'body': self.body.model_dump(**kwargs)
+        }
 
 
 class OpenAiBatchCompletionEntries(BaseModel):

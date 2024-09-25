@@ -1,11 +1,13 @@
 from datetime import datetime
 from functools import reduce
 from hashlib import md5
-from typing import Dict, Optional, List, Set, Tuple
+from typing import Dict, Optional, List, Set, Tuple, Any
 
 from pydantic import Field, BaseModel, AnyUrl, field_validator, root_validator
+from pydantic.main import IncEx
 from typing_extensions import Union, Literal
 
+from unibas.common.environment.variables import ModelDumpVariables
 from unibas.common.model.model_mongo import MongoModel
 from unibas.common.model.model_resource import WebContent, WebResource
 
@@ -102,6 +104,50 @@ class ParsedWebContentXmlSitemapResult(ParsedWebContentSuccess):
     """
     resource_type: Literal['parsed_web_content_xml_sitemap'] = Field(default='parsed_web_content_xml_sitemap', frozen=True)
     content: List[WebResource] = Field(default_factory=list, alias="content")
+    filter_paths: Optional[List[str]] = Field(None, alias="filter")
+    modified_after: Optional[datetime] = Field(None, alias="filter")
+    modified_before: Optional[datetime] = Field(None, alias="filter")
+
+    def model_dump(self, **kwargs) -> dict[str, Any]:
+        print(f'Dumping XML sitemap {kwargs}')
+        stringify_datetime: bool = kwargs.get('stringify_datetime', False)
+        resources = [resource.model_dump(**kwargs.copy()) for resource in self.content]
+        dump = {
+            **super().model_dump(**kwargs),
+            'content': resources
+        }
+        if stringify_datetime and self.modified_after is not None:
+            dump['modified_after'] = self.modified_after.isoformat()
+        if stringify_datetime and self.modified_before is not None:
+            dump['modified_before'] = self.modified_before.isoformat()
+        return dump
+
+    def set_filter_paths(self, filter_paths: List[str]):
+        """
+        Set the filter paths for the XML sitemap.
+
+        Args:
+            filter_paths (List[str]): The filter paths.
+        """
+        self.filter_paths = filter_paths
+
+    def set_modified_after(self, modified_after: datetime):
+        """
+        Set the modified after date for the XML sitemap.
+
+        Args:
+            modified_after (datetime): The modified after date.
+        """
+        self.modified_after = modified_after
+
+    def set_modified_before(self, modified_before: datetime):
+        """
+        Set the modified before date for the XML sitemap.
+
+        Args:
+            modified_before (datetime): The modified before date.
+        """
+        self.modified_before = modified_before
 
 
 # XML PARSED --------------------------------------------------------------------------------------
@@ -122,6 +168,13 @@ class ParsedWebContentHtml(ParsedWebContentTextChunks):
     attributes: 'HtmlAttributes' = Field(..., alias="attributes")
     content: 'TextChunks' = Field(default_factory=list, alias="content")
 
+    def model_dump(self, **kwargs) -> dict[str, Any]:
+        return {
+            **super().model_dump(**kwargs),
+            'attributes': self.attributes.model_dump(**kwargs),
+            'content': self.content
+        }
+
 
 class HtmlAttributes(BaseModel):
     """
@@ -141,6 +194,12 @@ class HtmlAttributes(BaseModel):
     description: Optional[str] = Field(..., alias="description")
     keywords: Optional[str] = Field(..., alias="keywords")
     links: 'UrlParseResult' = Field(..., alias="links")
+
+    def model_dump(self, **kwargs) -> dict[str, Any]:
+        return {
+            **super().model_dump(**kwargs),
+            'links': self.links.model_dump()
+        }
 
 
 def _url_arche_key(origin: AnyUrl, target: AnyUrl) -> str:
@@ -280,6 +339,12 @@ class UrlGraph(MongoModel):
         """
         return self.get_outgoing_arches(url) + self.get_incoming_arches(url)
 
+    def model_dump(self, **kwargs) -> dict[str, Any]:
+        return {
+            **super().model_dump(**kwargs),
+            'arches': {key: arche.model_dump(**kwargs) for key, arche in self.arches.items()}
+        }
+
 
 class UrlParseResult(MongoModel):
     """
@@ -376,6 +441,13 @@ class ParsedWebContentPdf(ParsedWebContentTextChunks):
     attributes: 'PdfAttributes' = Field(..., alias="attributes")
     content: 'TextChunks' = Field(default_factory=list, alias="content")
 
+    def model_dump(self, **kwargs) -> dict[str, Any]:
+        return {
+            **super().model_dump(**kwargs),
+            'attributes': self.attributes.model_dump(**kwargs),
+            'content': self.content
+        }
+
 
 class PdfAttributes(BaseModel):
     """
@@ -393,6 +465,7 @@ class PdfAttributes(BaseModel):
     date: Optional[str] = Field(None, alias="date")
     description: Optional[str] = Field(None, alias="description")
     keywords: Optional[str] = Field(None, alias="keywords")
+
 
 # HTML PARSED -------------------------------------------------------------------------------------
 # #################################################################################################

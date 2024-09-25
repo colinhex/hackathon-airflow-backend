@@ -72,7 +72,6 @@ class WebResource(MongoModel):
         if accept_none and date is None:
             return True
         compare: datetime = datetime.fromisoformat(date) if isinstance(date, str) else date
-        print(f'Comparing {str(compare.astimezone(tz=timezone.utc))} and {str(self.lastmod.astimezone(tz=timezone.utc))}')
         return compare.astimezone(tz=timezone.utc) > self.lastmod.astimezone(tz=timezone.utc)
 
     def is_same_host(self, domain: str | AnyHttpUrl | 'WebResource') -> bool:
@@ -125,11 +124,11 @@ class WebResource(MongoModel):
 
     @staticmethod
     def filter(
-            resources: List['WebResource'],
+            resources: List['WebResourceUnion'],
             filter_paths: List[Union[str, AnyUrl]] | None = None,
             modified_after: datetime | None = None,
             modified_before: datetime | None = None
-    ):
+    ) -> List['WebResourceUnion']:
         """
         Filter a list of web resources based on paths and modification dates.
 
@@ -162,20 +161,21 @@ class WebResource(MongoModel):
         """
         stringify_url = kwargs.pop(ModelDumpVariables.STRINGIFY_URL, True)
         stringify_datetime = kwargs.pop(ModelDumpVariables.STRINGIFY_DATETIME, False)
+        print('Dumping web resource: stringify_url', stringify_url, 'stringify_datetime', stringify_datetime)
 
         dump = super().model_dump(**kwargs)
 
         if stringify_url:
             dump['loc'] = str(dump['loc'])
-        if stringify_datetime:
+        if stringify_datetime and 'lastmod' in dump and dump['lastmod'] is not None:
             dump['lastmod'] = dump['lastmod'].isoformat()
 
         return dump
 
 
-class WebContent(WebResource):
+class WebContentHeader(WebResource):
     """
-    Model representing web content, inheriting from WebResource.
+    Model representing web content headers, inheriting from WebResource.
 
     Attributes:
         model_config (ConfigDict): Configuration for the model.
@@ -184,18 +184,75 @@ class WebContent(WebResource):
         mime_type (MimeType): The MIME type of the content.
         charset (Charset): The character set of the content.
         extracted_at (datetime): The datetime when the content was extracted.
-        content (Union[bytes, str]): The content of the web resource.
     """
     model_config = ConfigDict(**WebResource.model_config)
     model_config.update(
         use_enum_values=True,
     )
-
-    resource_type: Literal['web_response'] = Field(default='web_response', frozen=True)
+    resource_type: Literal['web_content_header'] = Field(default='web_content_header', frozen=True)
     code: HttpCode = Field(default=HttpCode.UNKNOWN)
     mime_type: MimeType = Field(default=MimeType.UNKNOWN)
     charset: Charset = Field(default=Charset.UNKNOWN)
     extracted_at: datetime = Field(default_factory=datetime.now)
+
+    @classmethod
+    async def result(cls, web_resource: WebResource, client_response: ClientResponse) -> 'WebContentHeader':
+        """
+        Create a WebContentHeader instance from a web resource and client response.
+
+        Args:
+            web_resource (WebResource): The web resource.
+            client_response (ClientResponse): The client response.
+
+        Returns:
+            WebContentHeader: The created WebContentHeader instance.
+        """
+        code: HttpCode = HttpCode.from_status_code(client_response.status)
+        mime_type = MimeType.from_content_type(client_response.headers.get('Content-Type'))
+        charset = Charset.from_content_type(client_response.headers.get('Content-Type'), default_to_utf8=True)
+
+        lastmod = client_response.headers.get('Last-Modified')
+        if lastmod is not None:
+            lastmod = datetime.strptime(lastmod, ResourceVariables.HEADER_DATE_FORMAT)
+        else:
+            lastmod = None
+
+        return cls(
+            loc=web_resource.loc,
+            lastmod=lastmod,
+            code=code,
+            mime_type=mime_type,
+            charset=charset
+        )
+
+    def model_dump(self, **kwargs) -> dict[str, Any]:
+        """
+        Dump the model data to a dictionary.
+
+        Args:
+            **kwargs: Additional keyword arguments for dumping the model.
+
+        Returns:
+            dict[str, Any]: The dumped model data.
+        """
+        return super().model_dump(**kwargs)
+
+
+class WebContent(WebContentHeader):
+    """
+    Model representing web content, inheriting from WebContentHeader.
+
+    Attributes:
+        model_config (ConfigDict): Configuration for the model.
+        resource_type (Literal['web_response']): The type of the resource, fixed to 'web_response'.
+        content (Union[bytes, str]): The content of the web resource.
+    """
+    model_config = ConfigDict(**WebContentHeader.model_config)
+    model_config.update(
+        use_enum_values=True,
+    )
+
+    resource_type: Literal['web_response'] = Field(default='web_content', frozen=True)
     content: Union[bytes, str]
 
     @classmethod
@@ -262,5 +319,8 @@ class WebContent(WebResource):
         return super().model_dump(**kwargs)
 
 
-class ApiResource(BaseModel):
-    resource_type: Literal['api_resource'] = Field(default='api_resource', frozen=True)
+class ApiContent(BaseModel):
+    resource_type: Literal['api_resource'] = Field(default='api_content', frozen=True)
+
+
+WebResourceUnion = Union[WebResource, WebContentHeader, WebContent]

@@ -139,6 +139,7 @@ MIME_TYPE_GROUP: Set[MimeType] = (
     PDF_MIME_TYPE
 )
 
+
 def is_in_mime_type_group(mime_type: MimeType, mime_type_group: MIME_TYPE_GROUP) -> bool:
     """
     Checks if a MIME type is in a given MIME type group.
