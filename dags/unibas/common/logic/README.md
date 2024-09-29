@@ -11,7 +11,7 @@ For any content that is parsed, special cases can be defined. For example in the
 we can add a special case for...
 * A specific uri.
 ```python
-if content.loc == 'https://www.example.com/some/path':
+if content.loc == AnyUrl('https://www.example.com/some/path'):
     pass
 ```
 * A specific domain.
