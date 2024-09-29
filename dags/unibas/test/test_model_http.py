@@ -21,20 +21,25 @@ class TestHttpCode(unittest.TestCase):
     def test_get_name_lowercase(self):
         self.assertEqual(HttpCode.OK.get_name(), 'ok')
 
+
     def test_is_code_group_1xx(self):
-        self.assertTrue(HttpCode.CONTINUE.protocol())
+        self.assertTrue(HttpCode.protocol(HttpCode.CONTINUE.value))
+
 
     def test_is_code_group_2xx(self):
-        self.assertTrue(HttpCode.OK.success())
+        self.assertTrue(HttpCode.success(HttpCode.OK.value))
+
 
     def test_is_code_group_3xx(self):
-        self.assertTrue(HttpCode.MOVED_PERMANENTLY.redirect())
+        self.assertTrue(HttpCode.redirect(HttpCode.MOVED_PERMANENTLY.value))
+
 
     def test_is_code_group_4xx(self):
-        self.assertTrue(HttpCode.BAD_REQUEST.client_error())
+        self.assertTrue(HttpCode.client_error(HttpCode.BAD_REQUEST.value))
+
 
     def test_is_code_group_5xx(self):
-        self.assertTrue(HttpCode.INTERNAL_SERVER_ERROR.server_error())
+        self.assertTrue(HttpCode.server_error(HttpCode.INTERNAL_SERVER_ERROR.value))
 
 
 if __name__ == '__main__':

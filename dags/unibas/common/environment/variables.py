@@ -57,29 +57,3 @@ class MongoAtlasEnvVariables:
     embeddings_collection: str = os.getenv('AIRFLOW_ATLAS_VECTOR_EMBEDDINGS_COLLECTION')
     airflow_database: str = os.getenv('AIRFLOW_ATLAS_AIRFLOW_DATABASE')
     batch_collection: str = os.getenv('AIRFLOW_ATLAS_AIRFLOW_BATCH_COLLECTION')
-
-
-class ModelDumpVariables:
-    """
-    Variables for model dumping.
-
-    Attributes:
-        STRINGIFY_DATETIME (str): Option to stringify datetime objects.
-        STRINGIFY_OBJECT_ID (str): Option to stringify object IDs.
-        STRINGIFY_URL (str): Option to stringify URLs.
-    """
-    STRINGIFY_DATETIME = 'stringify_datetime'
-    STRINGIFY_OBJECT_ID = 'stringify_object_id'
-    STRINGIFY_URL = 'stringify_url'
-
-
-class ResourceVariables:
-    """
-    Variables for resource handling.
-
-    Attributes:
-        RESOURCE_TYPE_FIELD (str): The field name for resource type.
-        HEADER_DATE_FORMAT (str): The date format for headers.
-    """
-    RESOURCE_TYPE_FIELD = "resource_type"
-    HEADER_DATE_FORMAT = "%a, %d %b %Y %H:%M:%S %Z"

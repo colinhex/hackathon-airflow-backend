@@ -62,11 +62,10 @@ class TestParsedWebContent(unittest.TestCase):
             code=self.web_content.code,
             mime_type=self.web_content.mime_type,
             charset=self.web_content.charset,
-            content=self.web_content.content,
-            text_chunks={1: 'chunk1', 2: 'chunk2'}
+            content=['chunk1', 'chunk2']
         )
         self.assertIsInstance(parsed_content_text_chunks, ParsedWebContentTextChunks)
-        self.assertEqual(parsed_content_text_chunks.text_chunks, {1: 'chunk1', 2: 'chunk2'})
+        self.assertEqual(parsed_content_text_chunks.content, ['chunk1', 'chunk2'])
 
     def test_parsed_web_content_failure_initialization(self):
         parsed_content_failure = ParsedWebContentFailure.create(

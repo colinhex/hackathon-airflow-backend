@@ -1,13 +1,12 @@
 from datetime import datetime
 from functools import reduce
 from hashlib import md5
-from typing import Dict, Optional, List, Set, Tuple, Any
+from typing import Dict, Optional, List, Set, Tuple, Any, Annotated
 
-from pydantic import Field, BaseModel, AnyUrl, field_validator, root_validator
-from pydantic.main import IncEx
+from pydantic import Field, BaseModel, AnyUrl, field_validator, Tag, Discriminator, ConfigDict
 from typing_extensions import Union, Literal
 
-from unibas.common.environment.variables import ModelDumpVariables
+from unibas.common.model.model_annotations import MongoDatetime, MongoAnyUrl
 from unibas.common.model.model_mongo import MongoModel
 from unibas.common.model.model_resource import WebContent, WebResource
 
@@ -42,13 +41,11 @@ class ParsedWebContentSuccess(ParsedWebContent):
 class ParsedWebContentTextChunks(ParsedWebContentSuccess):
     """
     Model representing parsed web content with text chunks.
-
-    Attributes:
-        resource_type (Literal['parsed_web_content_text_chunks']): The type of the resource.
-        text_chunks (Dict[int, str]): Dictionary of text chunks indexed by their position.
     """
     resource_type: Literal['parsed_web_content_text_chunks'] = Field(default='parsed_web_content_text_chunks', frozen=True)
-    text_chunks: Dict[int, str] = Field(default_factory=dict, alias="text_chunks")
+    content: List[str] = Field(default_factory=list, alias="text_chunks")
+    embeddings: List[List[float]] = Field(default_factory=list, alias="embeddings")
+    features: List[Dict[str, Any]] = Field(default_factory=list, alias="features")
 
 
 class ParsedWebContentFailure(ParsedWebContent):
@@ -62,7 +59,7 @@ class ParsedWebContentFailure(ParsedWebContent):
         reason (str): The reason for the failure.
     """
     resource_type: Literal['parsed_web_content_failure'] = Field(default='parsed_web_content_failure', frozen=True)
-    success: bool = Field(False, frozen=True)
+    success: bool = Field(False, frozen=False)
     implemented: bool = Field(...)
     reason: str = Field(...)
 
@@ -105,22 +102,8 @@ class ParsedWebContentXmlSitemapResult(ParsedWebContentSuccess):
     resource_type: Literal['parsed_web_content_xml_sitemap'] = Field(default='parsed_web_content_xml_sitemap', frozen=True)
     content: List[WebResource] = Field(default_factory=list, alias="content")
     filter_paths: Optional[List[str]] = Field(None, alias="filter")
-    modified_after: Optional[datetime] = Field(None, alias="filter")
-    modified_before: Optional[datetime] = Field(None, alias="filter")
-
-    def model_dump(self, **kwargs) -> dict[str, Any]:
-        print(f'Dumping XML sitemap {kwargs}')
-        stringify_datetime: bool = kwargs.get('stringify_datetime', False)
-        resources = [resource.model_dump(**kwargs.copy()) for resource in self.content]
-        dump = {
-            **super().model_dump(**kwargs),
-            'content': resources
-        }
-        if stringify_datetime and self.modified_after is not None:
-            dump['modified_after'] = self.modified_after.isoformat()
-        if stringify_datetime and self.modified_before is not None:
-            dump['modified_before'] = self.modified_before.isoformat()
-        return dump
+    modified_after: Optional[MongoDatetime] = Field(None, alias="filter")
+    modified_before: Optional[MongoDatetime] = Field(None, alias="filter")
 
     def set_filter_paths(self, filter_paths: List[str]):
         """
@@ -164,16 +147,8 @@ class ParsedWebContentHtml(ParsedWebContentTextChunks):
         attributes (HtmlAttributes): The HTML attributes of the parsed content.
         content (TextChunks): The text chunks of the parsed content.
     """
-    resource_type: Literal['parsed_web_content_success'] = Field(default='parsed_web_content_html', frozen=True)
+    resource_type: Literal['parsed_web_content_html'] = Field(default='parsed_web_content_html', frozen=True)
     attributes: 'HtmlAttributes' = Field(..., alias="attributes")
-    content: 'TextChunks' = Field(default_factory=list, alias="content")
-
-    def model_dump(self, **kwargs) -> dict[str, Any]:
-        return {
-            **super().model_dump(**kwargs),
-            'attributes': self.attributes.model_dump(**kwargs),
-            'content': self.content
-        }
 
 
 class HtmlAttributes(BaseModel):
@@ -188,18 +163,13 @@ class HtmlAttributes(BaseModel):
         keywords (Optional[str]): The keywords of the HTML content.
         links (UrlParseResult): The parsed URLs from the HTML content.
     """
+    attribute_type: Literal['html_attributes'] = Field(default='html_attributes', frozen=True)
     title: Optional[str] = Field(..., alias="title")
     author: Optional[str] = Field(..., alias="author")
     date: Optional[str] = Field(..., alias="date")
     description: Optional[str] = Field(..., alias="description")
     keywords: Optional[str] = Field(..., alias="keywords")
     links: 'UrlParseResult' = Field(..., alias="links")
-
-    def model_dump(self, **kwargs) -> dict[str, Any]:
-        return {
-            **super().model_dump(**kwargs),
-            'links': self.links.model_dump()
-        }
 
 
 def _url_arche_key(origin: AnyUrl, target: AnyUrl) -> str:
@@ -215,8 +185,8 @@ class UrlArche(BaseModel):
         target (AnyUrl): The target URL.
         weight (Optional[float]): The weight of the URL arche.
     """
-    origin: AnyUrl = Field(..., alias="origin")
-    target: AnyUrl = Field(..., alias="target")
+    origin: MongoAnyUrl = Field(..., alias="origin")
+    target: MongoAnyUrl = Field(..., alias="target")
     weight: Optional[float] = Field(0.0, alias="weight")
     key: Optional[str] = None
 
@@ -257,7 +227,7 @@ class UrlGraph(MongoModel):
         nodes (Set[AnyUrl]): The set of nodes (URLs) in the graph.
         arches (Dict[str, UrlArche]): The dictionary of URL arches in the graph.
     """
-    nodes: Set[AnyUrl] = Field(default_factory=set)
+    nodes: Set[MongoAnyUrl] = Field(default_factory=set)
     arches: Dict[str, UrlArche] = Field(default_factory=dict)
 
     def add_arche(self, arche: UrlArche):
@@ -339,12 +309,6 @@ class UrlGraph(MongoModel):
         """
         return self.get_outgoing_arches(url) + self.get_incoming_arches(url)
 
-    def model_dump(self, **kwargs) -> dict[str, Any]:
-        return {
-            **super().model_dump(**kwargs),
-            'arches': {key: arche.model_dump(**kwargs) for key, arche in self.arches.items()}
-        }
-
 
 class UrlParseResult(MongoModel):
     """
@@ -354,8 +318,8 @@ class UrlParseResult(MongoModel):
         origin (AnyUrl): The origin URL.
         urls (List[Tuple[AnyUrl, int]]): The list of parsed URLs with their frequencies.
     """
-    origin: AnyUrl = Field()
-    urls: List[Tuple[AnyUrl, int]] = Field(default_factory=list)
+    origin: MongoAnyUrl = Field()
+    urls: List[Tuple[MongoAnyUrl, int]] = Field(default_factory=list)
 
     def is_empty(self) -> bool:
         """
@@ -439,14 +403,6 @@ class ParsedWebContentPdf(ParsedWebContentTextChunks):
     """
     resource_type: Literal['parsed_web_content_pdf'] = Field(default='parsed_web_content_pdf', frozen=True)
     attributes: 'PdfAttributes' = Field(..., alias="attributes")
-    content: 'TextChunks' = Field(default_factory=list, alias="content")
-
-    def model_dump(self, **kwargs) -> dict[str, Any]:
-        return {
-            **super().model_dump(**kwargs),
-            'attributes': self.attributes.model_dump(**kwargs),
-            'content': self.content
-        }
 
 
 class PdfAttributes(BaseModel):
@@ -460,6 +416,7 @@ class PdfAttributes(BaseModel):
         description (Optional[str]): The description of the PDF content.
         keywords (Optional[str]): The keywords of the PDF content.
     """
+    attribute_type: Literal['pdf_attributes'] = Field(default='pdf_attributes', frozen=True)
     title: Optional[str] = Field(None, alias="title")
     author: Optional[str] = Field(None, alias="author")
     date: Optional[str] = Field(None, alias="date")
@@ -467,26 +424,53 @@ class PdfAttributes(BaseModel):
     keywords: Optional[str] = Field(None, alias="keywords")
 
 
-# HTML PARSED -------------------------------------------------------------------------------------
+# PDF PARSED --------------------------------------------------------------------------------------
+# #################################################################################################
+# DOCUMENT CHUNKS ---------------------------------------------------------------------------------
+
+
+def attribute_discriminator(v):
+    if isinstance(v, list):
+        return [attribute_discriminator(vx) for vx in v]
+    elif isinstance(v, dict):
+        return v.get('attribute_type')
+    return getattr(v, 'attribute_type', None)
+
+
+class DocumentMetadata(BaseModel):
+    created_at: MongoDatetime = Field(default_factory=datetime.now, frozen=True)
+    lastmod: MongoDatetime
+    document_id: str
+    attributes: Union[
+        Annotated[HtmlAttributes, Tag('html_attributes')],
+        Annotated[PdfAttributes, Tag('pdf_attributes')],
+    ] = Field(discriminator=Discriminator(attribute_discriminator))
+    chunk_id: str
+    chunk_index: int
+
+
+class DocumentChunk(MongoModel):
+    model_config = ConfigDict(**MongoModel.model_config)
+    resource_type: Literal['document_chunk'] = Field(default='document_chunk', frozen=True)
+    text: str
+    embedding: List[float]
+    tags: Dict[str, Any]
+    metadata: DocumentMetadata
+
+
+# DOCUMENT CHUNKS ---------------------------------------------------------------------------------
 # #################################################################################################
 # TYPE DEF ----------------------------------------------------------------------------------------
 
-
 ParsedContentUnion = Union[
-    ParsedWebContent,
     ParsedWebContentSuccess,
     ParsedWebContentFailure,
     ParsedWebContentHtml,
     ParsedWebContentPdf,
-    ParsedWebContentXmlSitemapResult
+    ParsedWebContentXmlSitemapResult,
 ]
 """
 Union type representing various parsed web content models.
-"""
-
-TextChunks = Dict[int, str]
-"""
-Type alias for a dictionary of text chunks indexed by their position.
 """
 
 # TYPE DEF ----------------------------------------------------------------------------------------

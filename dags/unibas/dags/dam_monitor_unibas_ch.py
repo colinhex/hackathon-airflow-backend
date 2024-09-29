@@ -1,9 +1,9 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from airflow.decorators import dag, task
 
-from unibas.common.monitoring import get_monitoring_date, execute_dam_monitor, \
-    upload_ingest_job_list, create_ingest_jobs_from_dam_resources
+from unibas.common.model.model_utils import dump_all_models_json
+from unibas.common.monitoring import *
 
 
 def on_failure_callback(**context):
@@ -43,26 +43,24 @@ dam_monitor_config = {
     default_args=dam_monitor_config['default_args']
 )
 def dam_monitor():
-    @task
-    def get_last_monitoring_date(dag_id: str):
-        return get_monitoring_date(dag_id)
-
     @task.short_circuit
-    def monitor_dam(cutoff):
-        return execute_dam_monitor(cutoff, dam_monitor_config['dam_resources'])
+    def monitor_dam(dag_run: DagRun):
+        web_content_headers: List[WebContentHeader] = execute_dam_monitor(
+            get_monitoring_date(dag_run) or dam_monitor_config['start_date'],
+            dam_monitor_config['dam_resources'],
+        )
+        if not web_content_headers:
+            return None
+        return dump_all_models_json(web_content_headers)
 
     @task
-    def create_ingest_jobs(sitemap):
-        return create_ingest_jobs_from_dam_resources(sitemap, dam_monitor_config['job_size'])
-
-    @task
-    def upload_ingest_jobs(jobs):
+    def create_ingest_jobs(content_headers):
+        headers: List[WebContentHeader] = [WebContentHeader.parse_obj(header) for header in content_headers]
+        jobs: List[Job] = create_ingest_jobs_from_dam_resources(dam_monitor_config['dag_id'], headers, dam_monitor_config['job_size'])
         upload_ingest_job_list(jobs)
 
-    cutoff_result = get_last_monitoring_date(dag_id=dam_monitor_config['dag_id'])
-    dam_result = monitor_dam(cutoff_result)
-    ingest_jobs_result = create_ingest_jobs(dam_result)
-    upload_ingest_jobs(ingest_jobs_result)
+    monitor = monitor_dam()
+    create_ingest_jobs(monitor)
 
 
 dam_monitor_dag = dam_monitor()

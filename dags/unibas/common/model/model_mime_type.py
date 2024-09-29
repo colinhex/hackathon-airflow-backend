@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Set
 
+
 class MimeType(str, Enum):
     """
     Enumeration of various MIME types.

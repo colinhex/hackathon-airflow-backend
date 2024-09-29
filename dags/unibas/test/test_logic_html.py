@@ -57,35 +57,34 @@ class TestHtmlLogic(unittest.TestCase):
         self.assertIsInstance(self.soup_sample(), BeautifulSoup)
 
     def test_parse_html_title_returns_title(self):
-        self.assertEqual(parse_html_title(self.soup_sample()), "Sample Title")
+        self.assertEqual("Sample Title", parse_html_title(self.soup_sample()))
 
     def test_parse_html_title_returns_h1_if_no_title(self):
-        soup_without_title = self.soup_no_meta().find('body')
-        self.assertEqual(parse_html_title(soup_without_title), "Sample H1")
+        self.assertEqual("Sample H1", parse_html_title(self.soup_no_meta().find('body')))
 
     def test_parse_html_title_returns_none_if_no_title_or_h1(self):
         self.assertIsNone(parse_html_title(self.soup_empty()))
 
     def test_parse_html_author_returns_author(self):
-        self.assertEqual(parse_html_author(self.soup_sample()), "Sample Author")
+        self.assertEqual("Sample Author", parse_html_author(self.soup_sample()))
 
     def test_parse_html_author_returns_none_if_no_author(self):
         self.assertIsNone(parse_html_author(self.soup_no_meta()))
 
     def test_parse_html_date_returns_date(self):
-        self.assertEqual(parse_html_date(self.soup_sample()), "2023-10-01")
+        self.assertEqual("2023-10-01", parse_html_date(self.soup_sample()))
 
     def test_parse_html_date_returns_default_if_no_date(self):
-        self.assertEqual(parse_html_date(self.soup_no_meta(), "default-date"), "default-date")
+        self.assertEqual("default-date", parse_html_date(self.soup_no_meta(), "default-date"))
 
     def test_parse_html_description_returns_description(self):
-        self.assertEqual(parse_html_description(self.soup_sample()), "Sample Description")
+        self.assertEqual("Sample Description", parse_html_description(self.soup_sample()))
 
     def test_parse_html_description_returns_none_if_no_description(self):
         self.assertIsNone(parse_html_description(self.soup_no_meta()))
 
     def test_parse_html_keywords_returns_keywords(self):
-        self.assertEqual(parse_html_keywords(self.soup_sample()), "sample, test")
+        self.assertEqual("sample, test", parse_html_keywords(self.soup_sample()))
 
     def test_parse_html_keywords_returns_none_if_no_keywords(self):
         self.assertIsNone(parse_html_keywords(self.soup_no_meta()))
@@ -95,7 +94,7 @@ class TestHtmlLogic(unittest.TestCase):
         self.assertTrue(True)
 
     def test_get_all_text_from_html_body_returns_text(self):
-        self.assertEqual(get_all_text_from_html_body(self.soup_sample()), "Sample H1\nSample paragraph.\nExample Link")
+        self.assertEqual("Sample H1 \n Sample paragraph. \n Example Link", get_all_text_from_html_body(self.soup_sample()))
 
     def test_get_all_text_from_html_body_returns_empty_if_no_body(self):
-        self.assertEqual(get_all_text_from_html_body(self.soup_empty()), "")
+        self.assertEqual("", get_all_text_from_html_body(self.soup_empty()))

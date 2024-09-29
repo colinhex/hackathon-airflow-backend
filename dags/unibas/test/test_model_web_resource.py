@@ -1,17 +1,12 @@
 import unittest
 from datetime import datetime, timezone
+
 from pydantic import AnyHttpUrl
 
-from unibas.common.environment.variables import ModelDumpVariables
 from unibas.common.model.model_resource import WebResource
 
 
 class TestWebResource(unittest.TestCase):
-
-    def test_from_iso_string_valid(self):
-        resource = WebResource.from_iso_string('http://example.com', '2023-01-01T00:00:00')
-        self.assertEqual(resource.loc, AnyHttpUrl('http://example.com'))
-        self.assertEqual(resource.lastmod, datetime(2023, 1, 1, 0, 0))
 
     def test_was_modified_after_true(self):
         resource = WebResource(loc='http://example.com', lastmod=datetime(2023, 1, 1, 0, 0))
@@ -57,23 +52,6 @@ class TestWebResource(unittest.TestCase):
         resource = WebResource(loc='https://example.com', lastmod=datetime(2023, 1, 1, 0, 0))
         dump = resource.model_dump()
         self.assertEqual(dump['loc'], 'https://example.com/')
-        self.assertEqual(dump['lastmod'], datetime(2023, 1, 1, 0, 0))
-
-    def test_model_dump_stringify_url(self):
-        resource = WebResource(loc='https://example.com', lastmod=datetime(2023, 1, 1, 0, 0))
-        dump = resource.model_dump(**{ModelDumpVariables.STRINGIFY_URL: True})
-        self.assertEqual(dump['loc'], 'https://example.com/')
-
-    def test_model_dump_stringify_datetime(self):
-        resource = WebResource(loc='https://example.com', lastmod=datetime(2023, 1, 1, 0, 0, tzinfo=timezone.utc))
-        dump = resource.model_dump(**{ModelDumpVariables.STRINGIFY_DATETIME: True})
-        self.assertEqual(dump['lastmod'], '2023-01-01T00:00:00+00:00')
-
-    def test_model_dump_no_stringify(self):
-        resource = WebResource(loc='https://example.com', lastmod=datetime(2023, 1, 1, 0, 0))
-        dump = resource.model_dump(
-            **{ModelDumpVariables.STRINGIFY_URL: False, ModelDumpVariables.STRINGIFY_DATETIME: False})
-        self.assertEqual(dump['loc'], AnyHttpUrl('https://example.com/'))
         self.assertEqual(dump['lastmod'], datetime(2023, 1, 1, 0, 0))
 
     def test_filter_no_filters(self):

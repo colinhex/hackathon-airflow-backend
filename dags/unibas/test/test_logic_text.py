@@ -19,16 +19,16 @@ class TestTextLogic(unittest.TestCase):
 
     def test_collect_sentences_into_chunks_handles_empty_list(self):
         result = collect_sentences_into_chunks([])
-        self.assertEqual({}, result)
+        self.assertEqual([], result)
 
     def test_collect_sentences_into_chunks_handles_single_sentence(self):
         result = collect_sentences_into_chunks(["Hello world."])
-        self.assertEqual({0: "Hello world."}, result)
+        self.assertEqual(["Hello world."], result)
 
     def test_collect_sentences_into_chunks_handles_multiple_sentences(self):
         sentences = ["Hello world.", "This is a test.", "Another sentence."]
         result = collect_sentences_into_chunks(sentences, max_chunk_size=20)
-        self.assertEqual({0: "Hello world.", 1: "This is a test.", 2: "Another sentence."}, result)
+        self.assertEqual(["Hello world.", "This is a test.", "Another sentence."], result)
 
     def test_get_as_string_handles_bytes(self):
         result = get_as_string(b"Hello world", Charset.UTF_8)
@@ -72,7 +72,7 @@ class TestTextLogic(unittest.TestCase):
 
     def test_clean_and_split_text_handles_complex_text(self):
         result = clean_and_split_text("  Café\nWorld\x0c! This is a test.  ")
-        self.assertEqual({0: "Café World! This is a test."}, result)
+        self.assertEqual(["Café World! This is a test."], result)
 
 
 if __name__ == '__main__':

@@ -91,7 +91,8 @@ class HttpCode(int, Enum):
         """
         return self.name.lower()
 
-    def _is_code_group(self, group: Literal[1, 2, 3, 4, 5]) -> bool:
+    @staticmethod
+    def _is_code_group(code: int, group: Literal[1, 2, 3, 4, 5]) -> bool:
         """
         Check if the HTTP status code belongs to a specific group.
 
@@ -101,49 +102,54 @@ class HttpCode(int, Enum):
         Returns:
             bool: True if the status code belongs to the specified group, False otherwise.
         """
-        return str(self.value).startswith(str(group))
+        return str(code).startswith(str(group))
 
-    def protocol(self) -> bool:
+    @staticmethod
+    def protocol(code: int) -> bool:
         """
         Check if the HTTP status code is in the 1xx group.
 
         Returns:
             bool: True if the status code is in the 1xx group, False otherwise.
         """
-        return self._is_code_group(1)
+        return HttpCode._is_code_group(code, 1)
 
-    def success(self) -> bool:
+    @staticmethod
+    def success(code: int) -> bool:
         """
         Check if the HTTP status code is in the 2xx group.
 
         Returns:
             bool: True if the status code is in the 2xx group, False otherwise.
         """
-        return self._is_code_group(2)
+        return HttpCode._is_code_group(code, 2)
 
-    def redirect(self) -> bool:
+    @staticmethod
+    def redirect(code: int) -> bool:
         """
         Check if the HTTP status code is in the 3xx group.
 
         Returns:
             bool: True if the status code is in the 3xx group, False otherwise.
         """
-        return self._is_code_group(3)
+        return HttpCode._is_code_group(code, 3)
 
-    def client_error(self) -> bool:
+    @staticmethod
+    def client_error(code: int) -> bool:
         """
         Check if the HTTP status code is in the 4xx group.
 
         Returns:
             bool: True if the status code is in the 4xx group, False otherwise.
         """
-        return self._is_code_group(4)
+        return HttpCode._is_code_group(code, 4)
 
-    def server_error(self) -> bool:
+    @staticmethod
+    def server_error(code: int) -> bool:
         """
         Check if the HTTP status code is in the 5xx group.
 
         Returns:
             bool: True if the status code is in the 5xx group, False otherwise.
         """
-        return self._is_code_group(5)
+        return HttpCode._is_code_group(code, 5)

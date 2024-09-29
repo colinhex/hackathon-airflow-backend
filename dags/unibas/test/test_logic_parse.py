@@ -51,7 +51,7 @@ class TestHtmlParsing(unittest.TestCase):
         self.assertEqual(parsed_content.resource_type, "parsed_web_content_html")
         parsed_html_content: ParsedWebContentHtml = parsed_content
         self.assertEqual(parsed_html_content.attributes.title, "Test")
-        self.assertIn(0, parsed_html_content.content)
+        self.assertEqual(1, len(parsed_html_content.content))
         self.assertEqual(parsed_html_content.content[0], "Example HTML content")
 
 
@@ -103,7 +103,7 @@ class TestPdfParsing(unittest.TestCase):
         parsed_content = parse(web_content)
         self.assertEqual(parsed_content.resource_type, "parsed_web_content_pdf")
         parsed_pdf_content: ParsedWebContentPdf = parsed_content
-        self.assertIn(0, parsed_pdf_content.content)
+        self.assertEqual(1, len(parsed_pdf_content.content))
         self.assertIn("Hello, World!", parsed_pdf_content.content[0])
 
 
