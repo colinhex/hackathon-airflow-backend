@@ -151,7 +151,7 @@ The backend consists of DAGs (or Workflows) managed by the Airflow Scheduler. Ea
 <div 
   style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;"
 >
-<img src="./docs/airflow-backend-architecture-vision.png" width="900px"  alt="Airflow Backend Architecture Vision">
+<img src="./docs/airflow-backend-architecture-vision-v2.png" width="900px"  alt="Airflow Backend Architecture Vision">
 </div>
 
 ### In the Webserver UI
