@@ -19,7 +19,7 @@ if content.loc == AnyUrl('https://www.example.com/some/path'):
 if content.is_same_host('https://www.example.com'):
     pass
 ```
-* A specific sub_path or list of sub_paths+
+* A specific sub_path or list of sub_paths.
 ```python
 if content.is_some_sub_path_from('/some/path'):
     pass
