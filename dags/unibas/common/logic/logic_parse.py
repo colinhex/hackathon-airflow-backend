@@ -346,25 +346,30 @@ def parse_html_body(content: WebContent) -> List[str]:
     print(f'Parsing HTML Body for: {content.loc}')
     html_text: str = get_as_string(content.content, charset=content.charset)
     soup: BeautifulSoup = get_soup(html_text)
-
+    body = soup.find('body')
+    assert body is not None
     # Special parsing for specific resources. -----------------------------------------------------
     if content.is_same_host('https://dmi.unibas.ch'):
         # Site dmi.unibas.ch always has a content div with class 'content'.
-        text = soup.find('div', class_='content').get_text(separator=' ')
+        content = body.find('div', class_='content')
+        assert content is not None
+        text = content.get_text(separator=' ')
     elif content.is_same_host('https://www.unibas.ch'):
         # Site www.unibas.ch always has content_wrapper divs of which the first and the 4 last are not relevant.
-        content_wrappers = soup.find_all('div', class_='content_wrapper', recursive=True)
+        content_wrappers = body.find_all('div', class_='content_wrapper', recursive=True)
+        assert content_wrappers is not None
         assert len(content_wrappers) > 5
         content_wrappers = content_wrappers[1:-4]
         text = ' '.join([element.get_text(separator=' ') for element in content_wrappers])
     elif content.is_same_host('https://www.swissuniversities.ch'):
         # Site www.swissuniversities.ch always has a mainContent div.
-        text = soup.find('div', class_='mainContent', recursive=True).get_text(separator=' ')
+        main_content = body.find('div', class_='mainContent', recursive=True)
+        assert main_content is not None
+        text = main_content.get_text(separator=' ')
     else:
         # Default parsing.
-        text = get_all_text_from_html_body(soup)
+        text = body.get_text(separator=' ')
 
-    print('Text: ' + text)
     return pipe(
         text,
         clean_and_split_text
