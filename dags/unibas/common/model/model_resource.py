@@ -78,7 +78,19 @@ class WebResource(MongoModel):
         elif isinstance(domain, WebResource):
             return self.is_same_host(domain.loc)
 
-    def is_sub_path_from(self, path: Union[str, re.Pattern, AnyUrl]) -> bool:
+    def matches(self, path: re.Pattern) -> bool:
+        if str(path).startswith('/') or str(path).startswith('^/'):
+            if self.loc.path is None and not (str(path) == '/' or str(path) == ''):
+                return False
+            return path.match(str(self.loc.path)) is not None
+        return path.match(str(self.loc)) is not None
+
+    def matches_any(self, paths: List[re.Pattern], accept_none=True, accept_empty=True) -> bool:
+        if (paths is None and accept_none) or (len(paths) == 0 and accept_empty):
+            return True
+        return any([self.matches(p) for p in paths])
+
+    def is_sub_path_from(self, path: Union[str, AnyUrl]) -> bool:
         if isinstance(path, AnyUrl):
             path = str(path)
             return str(self.loc).startswith(path)
@@ -88,10 +100,9 @@ class WebResource(MongoModel):
                     return False
                 return str(self.loc.path).startswith(path)
             return str(self.loc).startswith(path)
-        elif isinstance(path, re.Pattern):
-            return path.match(str(self.loc.path)) is not None
+        raise ValueError(f'Invalid path type: {type(path)}')
 
-    def is_sub_path_from_any(self, path: List[Union[str, re.Pattern, AnyUrl]] | None, accept_none=True, accept_empty=True) -> bool:
+    def is_sub_path_from_any(self, path: List[Union[str, AnyUrl]] | None, accept_none=True, accept_empty=True) -> bool:
         if (path is None and accept_none) or (len(path) == 0 and accept_empty):
             return True
         return any([self.is_sub_path_from(p) for p in path])
