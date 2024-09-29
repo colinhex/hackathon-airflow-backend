@@ -54,7 +54,7 @@ For more information, visit the [Apache Airflow website](https://airflow.apache.
 ### Feature Engineering
 - [x] Generating Embeddings for Text with OpenAI
 - [ ] Generating Embeddings for Text with Other Providers
-- [x] Generating Tags for Text with OpenAI (see [prompt logic](/dags/unibas/common/logic/logic_prompt.py))
+- [x] Generating Tags for Text with OpenAI (see [prompt model](/dags/unibas/common/model/model_prompt.py))
   - Prompt Logic is currently a placeholder and can be easily extended.
 - [ ] Generating Tags for Text with Other Providers
 - [ ] Generating Other Features
