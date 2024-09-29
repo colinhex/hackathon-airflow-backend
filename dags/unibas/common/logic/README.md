@@ -40,7 +40,6 @@ if content.matches_any([
     r'^https:\/\/www\.example\.com\/another\/path\/.*$'
 ]):
     pass
-    pass
 ```
 
 This allows us to define cases and update them individually for different sources. 
