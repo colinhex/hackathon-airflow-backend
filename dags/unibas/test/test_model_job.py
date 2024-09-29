@@ -64,11 +64,10 @@ class TestParsedWebContent(unittest.TestCase):
             code=self.web_content.code,
             mime_type=self.web_content.mime_type,
             charset=self.web_content.charset,
-            content=self.web_content.content,
-            text_chunks={1: 'chunk1', 2: 'chunk2'}
+            content=['chunk1', 'chunk2']
         )
         self.assertIsInstance(parsed_content_text_chunks, ParsedWebContentTextChunks)
-        self.assertEqual(parsed_content_text_chunks.text_chunks, {1: 'chunk1', 2: 'chunk2'})
+        self.assertEqual(parsed_content_text_chunks.content, ['chunk1', 'chunk2'])
 
     def test_parsed_web_content_failure_initialization(self):
         parsed_content_failure = ParsedWebContentFailure.create(
@@ -99,7 +98,7 @@ class TestParsedWebContent(unittest.TestCase):
         self.assertIn('success', dump)
 
     def test_job_initialization_with_default_values(self):
-        job = Job(resources=[])
+        job = Job(created_by="test", resources=[])
         self.assertIsInstance(job, Job)
         self.assertFalse(job.processing)
         self.assertEqual(job.tries, 0)
@@ -108,28 +107,22 @@ class TestParsedWebContent(unittest.TestCase):
 
     def test_job_initialization_with_custom_values(self):
         resources = [WebResource(loc=AnyUrl('http://example.com'), lastmod=datetime.now())]
-        job = Job(processing=True, tries=3, resources=resources)
+        job = Job(created_by="test", processing=True, tries=3, resources=resources)
         self.assertTrue(job.processing)
         self.assertEqual(job.tries, 3)
         self.assertEqual(job.resources, resources)
 
     def test_job_model_dump_with_default_values(self):
-        job = Job(resources=[])
+        job = Job(created_by="test", resources=[])
         dump = job.model_dump()
         self.assertIn('created_at', dump)
         self.assertIn('processing', dump)
         self.assertIn('tries', dump)
         self.assertIn('resources', dump)
 
-    def test_job_model_dump_with_stringify_datetime(self):
-        job = Job(resources=[])
-        dump = job.model_dump(stringify_datetime=True)
-        self.assertIsInstance(dump['created_at'], str)
-        self.assertIn('T', dump['created_at'])  # Check if ISO format
-
     def test_job_model_dump_with_resources(self):
         resources = [WebResource(loc=AnyUrl('http://example.com'), lastmod=datetime.now())]
-        job = Job(resources=resources)
+        job = Job(created_by="test", resources=resources)
         dump = job.model_dump()
         self.assertIn('resources', dump)
         self.assertEqual(len(dump['resources']), 1)

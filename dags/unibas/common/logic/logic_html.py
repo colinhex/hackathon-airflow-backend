@@ -116,4 +116,4 @@ def get_all_text_from_html_body(soup: BeautifulSoup) -> str:
     if not body:
         return ''
     else:
-        return body.text.strip()
+        return body.get_text(separator=' ').strip()

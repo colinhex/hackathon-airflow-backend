@@ -1,12 +1,14 @@
+import re
+
 from toolz import pipe
 
+from unibas.common.logic.logic_html import *
+from unibas.common.logic.logic_pdf import *
+from unibas.common.logic.logic_text import *
+from unibas.common.logic.logic_web_client import fetch_resource
+from unibas.common.logic.logic_xml import *
 from unibas.common.model.model_mime_type import *
 from unibas.common.model.model_parsed import *
-
-from unibas.common.logic.logic_html import *
-from unibas.common.logic.logic_text import *
-from unibas.common.logic.logic_xml import *
-from unibas.common.logic.logic_pdf import *
 
 
 def parse(content: WebContent) -> 'ParsedContentUnion':
@@ -23,10 +25,16 @@ def parse(content: WebContent) -> 'ParsedContentUnion':
         ValueError: If the content is not recognized.
         Exception: If an error occurs during parsing.
     """
+    if isinstance(content, ParsedWebContentSuccess):
+        # Early return if already parsed.
+        print(f'Content already parsed: {content.loc}')
+        return content
     if isinstance(content, WebContent):
         try:
+            print(f'Parsing: {content.loc}')
             return parse_web_content(content)
         except NotImplementedError as nie:
+            print(f'Parsing not implemented for content: {content.loc}, {content.mime_type}')
             return ParsedWebContentFailure.create(content=content, reason=nie)
         except Exception as exception:
             raise Exception('Something happened during parsing: ', exception)
@@ -304,6 +312,7 @@ def parse_html_to_attributes(content: WebContent) -> HtmlAttributes:
     Returns:
         HtmlAttributes: The extracted HTML attributes.
     """
+    print(f'Parsing HTML Attributes for: {content.loc}')
     html_text: str = get_as_string(content.content, charset=content.charset)
     soup: BeautifulSoup = get_soup(html_text)
 
@@ -324,7 +333,7 @@ def parse_html_to_attributes(content: WebContent) -> HtmlAttributes:
     )
 
 
-def parse_html_body(content: WebContent) -> 'TextChunks':
+def parse_html_body(content: WebContent) -> List[str]:
     """
     Extract and clean the body text from the HTML content.
 
@@ -334,30 +343,33 @@ def parse_html_body(content: WebContent) -> 'TextChunks':
     Returns:
         TextChunks: The cleaned and split text chunks from the HTML body.
     """
+    print(f'Parsing HTML Body for: {content.loc}')
     html_text: str = get_as_string(content.content, charset=content.charset)
     soup: BeautifulSoup = get_soup(html_text)
 
-    match content:
-        case WebContent(loc='https://www.dummy-host.com/specific-path/specific-thing.any'):
-            # Special Parsing for an exact resource.
-            raise ValueError()
-        case _:
-            if content.is_same_host('https://www.dummy-host.com'):
-                # Special Parsing for a given host.
-                raise ValueError()
-            elif content.is_sub_path_from('https://www.dummy-host.com/some-path'):
-                # Special Parsing for given sub-path.
-                raise ValueError()
-            elif content.is_sub_path_from_any([
-                'https://www.dummy-host.com/some-path',
-                'https://www.dummy-host.com/some-other-path'
-            ]):
-                # Special Parsing for multiple sub-paths.
-                raise ValueError()
-            return pipe(
-                get_all_text_from_html_body(soup),
-                clean_and_split_text
-            )
+    # Special parsing for specific resources. -----------------------------------------------------
+    if content.is_same_host('https://dmi.unibas.ch'):
+        # Site dmi.unibas.ch always has a content div with class 'content'.
+        text = soup.find('div', class_='content').get_text(separator=' ')
+    elif content.is_same_host('https://www.unibas.ch'):
+        # Site www.unibas.ch always has content_wrapper divs of which the first and the 4 last are not relevant.
+        content_wrappers = soup.find_all('div', class_='content_wrapper', recursive=True)
+        assert len(content_wrappers) > 5
+        content_wrappers = content_wrappers[1:-4]
+        text = ' '.join([element.get_text(separator=' ') for element in content_wrappers])
+    elif content.is_same_host('https://www.swissuniversities.ch'):
+        # Site www.swissuniversities.ch always has a mainContent div.
+        text = soup.find('div', class_='mainContent', recursive=True).get_text(separator=' ')
+    else:
+        # Default parsing.
+        text = get_all_text_from_html_body(soup)
+
+    print('Text: ' + text)
+    return pipe(
+        text,
+        clean_and_split_text
+    )
+
 
 # HTML PARSING -------------------------------------------------------------------------------------
 # ##################################################################################################
@@ -396,6 +408,7 @@ def parse_pdf_to_attributes(content: WebContent) -> PdfAttributes:
     Returns:
         PdfAttributes: The extracted PDF attributes.
     """
+    print(f'Parsing PDF Attributes for: {content.loc}')
     pdf_bytes = get_as_bytes(content.content, charset=content.charset)
     document = get_pdf_document(pdf_bytes)
 
@@ -414,7 +427,7 @@ def parse_pdf_to_attributes(content: WebContent) -> PdfAttributes:
     )
 
 
-def parse_pdf_body(content: WebContent) -> 'TextChunks':
+def parse_pdf_body(content: WebContent) -> List[str]:
     """
     Extract and clean the body text from the PDF content.
 
@@ -424,6 +437,7 @@ def parse_pdf_body(content: WebContent) -> 'TextChunks':
     Returns:
         TextChunks: The cleaned and split text chunks from the PDF body.
     """
+    print(f'Parsing PDF Body for: {content.loc}')
     pdf_bytes: bytes = get_as_bytes(content.content, charset=content.charset)
 
     match content:

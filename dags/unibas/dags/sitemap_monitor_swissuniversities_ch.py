@@ -1,9 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from airflow.decorators import dag, task
 
-from unibas.common.monitoring import get_monitoring_date, execute_sitemap_monitor, \
-    create_ingest_jobs_from_sitemap_resources, upload_ingest_job_list
+from unibas.common.monitoring import *
 
 
 def on_failure_callback(**context):
@@ -41,26 +40,29 @@ sitemap_monitor_config = {
     default_args=sitemap_monitor_config['default_args']
 )
 def sitemap_monitor():
-    @task
-    def get_last_monitoring_date(dag_id: str):
-        return get_monitoring_date(dag_id)
 
     @task.short_circuit
-    def monitor_sitemap(cutoff):
-        return execute_sitemap_monitor(cutoff, sitemap_monitor_config['sitemap_url'], sitemap_monitor_config['sitemap_filter'])
+    def monitor_sitemap(dag_run: DagRun):
+        sitemap: Optional[ParsedWebContentXmlSitemapResult] = execute_sitemap_monitor(
+            get_monitoring_date(dag_run) or sitemap_monitor_config['start_date'],
+            sitemap_monitor_config['sitemap_url'],
+            sitemap_monitor_config['sitemap_filter']
+        )
+        if not sitemap:
+            return None
+        return sitemap.json()
 
     @task
     def create_ingest_jobs(sitemap):
-        return create_ingest_jobs_from_sitemap_resources(sitemap, sitemap_monitor_config['job_size'])
-
-    @task
-    def upload_ingest_jobs(jobs):
+        sitemap: ParsedWebContentXmlSitemapResult = ParsedWebContentXmlSitemapResult.parse_raw(sitemap)
+        jobs: List[Job] = create_ingest_jobs_from_sitemap_resources(sitemap_monitor_config['dag_id'], sitemap, sitemap_monitor_config['job_size'])
         upload_ingest_job_list(jobs)
 
-    cutoff_result = get_last_monitoring_date(dag_id=sitemap_monitor_config['dag_id'])
-    sitemap_result = monitor_sitemap(cutoff_result)
-    ingest_jobs_result = create_ingest_jobs(sitemap_result)
-    upload_ingest_jobs(ingest_jobs_result)
+    sitemap_result = monitor_sitemap()
+    create_ingest_jobs(sitemap_result)
 
 
 sitemap_monitor_dag = sitemap_monitor()
+
+
+

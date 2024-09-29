@@ -65,6 +65,8 @@ if [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_PASSWORD" ] || [ -z "$POSTGRES_DB"
   exit 1
 fi
 
+echo "Creating directories for data, logs, and plugins if they do not exist yet..."
+mkdir -p ./data ./logs ./plugins
 echo "Creating database initialization file from postgres environment variables... (initdb.sql)"
 SQL_FILE="./initdb.sql"
 cat <<EOF > $SQL_FILE

@@ -1,12 +1,8 @@
 from datetime import datetime
 from typing import Union, List
 
-from pydantic import Tag, Field, Discriminator
-from typing_extensions import Annotated
-
-from unibas.common.model.model_mongo import MongoModel
-from unibas.common.model.model_resource import WebResource, ApiResource, ResourceVariables
-from unibas.common.environment.variables import ModelDumpVariables
+from unibas.common.model.model_parsed import *
+from unibas.common.model.model_resource import *
 
 
 def resource_discriminator(v):
@@ -22,8 +18,8 @@ def resource_discriminator(v):
     if isinstance(v, list):
         return [resource_discriminator(vx) for vx in v]
     elif isinstance(v, dict):
-        return v.get(ResourceVariables.RESOURCE_TYPE_FIELD)
-    return getattr(v, ResourceVariables.RESOURCE_TYPE_FIELD, None)
+        return v.get("resource_type")
+    return getattr(v, "resource_type", None)
 
 
 class Job(MongoModel):
@@ -36,28 +32,18 @@ class Job(MongoModel):
         tries (int): The number of attempts made to process the job.
         resources (List[Union[WebResource, ApiResource]]): List of resources associated with the job.
     """
-    created_at: datetime = Field(default_factory=datetime.now, frozen=True)
+    created_by: str
+    created_at: MongoDatetime = Field(default_factory=datetime.now, frozen=True)
     processing: bool = Field(default=False)
     tries: int = Field(default=0)
     resources: List[Union[
-        Annotated[WebResource, Tag('web_resource')],
         Annotated[ApiResource, Tag('api_resource')],
-        # Define more resource types here.
+        Annotated[WebResource, Tag('web_resource')],
+        Annotated[WebContentHeader, Tag('web_content_header')],
+        Annotated[WebContent, Tag('web_content')],
+        Annotated[ParsedWebContentFailure, Tag('parsed_web_content_failure')],
+        Annotated[ParsedWebContentPdf, Tag('parsed_web_content_pdf')],
+        Annotated[ParsedWebContentHtml, Tag('parsed_web_content_html')],
+        Annotated[DocumentChunk, Tag('document_chunk')],
     ]] = Field(discriminator=Discriminator(resource_discriminator))
 
-    def model_dump(self, **kwargs):
-        """
-        Dumps the model to a dictionary.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            dict: The dictionary representation of the model.
-        """
-        stringify_datetime: bool = kwargs.pop(ModelDumpVariables.STRINGIFY_DATETIME, False)
-        dictionary_dump = super().model_dump(**kwargs)
-        dictionary_dump['resources'] = [resource.model_dump(**kwargs) for resource in self.resources]
-        if stringify_datetime:
-            dictionary_dump['created_at'] = dictionary_dump['created_at'].isoformat()
-        return dictionary_dump

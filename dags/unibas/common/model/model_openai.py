@@ -1,103 +1,61 @@
-from typing import Dict
+from typing import Dict, Optional
 
 from pydantic import BaseModel, Field
 from typing_extensions import List
 
 from unibas.common.environment.variables import OpenAiEnvVariables
+from unibas.common.model.model_job import Job
+from unibas.common.model.model_parsed import ParsedWebContentTextChunks
 
 
 class OpenAiEmbedding(BaseModel):
-    """
-    Model representing an OpenAI embedding.
-
-    Attributes:
-        embedding_model (str): The model used for embedding.
-        chunk_index (int): The index of the text chunk.
-        text_chunk (str): The text chunk.
-        embedding (List[float]): The embedding vector.
-    """
     embedding_model: str = Field(OpenAiEnvVariables.embedding_model, alias='embedding_model')
+    resource_id: str
     chunk_index: int
+    embedding_index: int
     text_chunk: str
     embedding: List[float] = Field(default_factory=list)
 
 
 class OpenAiEmbeddings(BaseModel):
-    """
-    Model representing a collection of OpenAI embeddings.
-
-    Attributes:
-        embedding_model (str): The model used for embedding.
-        embeddings (Dict[int, OpenAiEmbedding]): A dictionary of embeddings indexed by chunk index.
-    """
     embedding_model: str = Field(OpenAiEnvVariables.embedding_model, alias='embedding_model')
-    embeddings: Dict[int, OpenAiEmbedding] = Field(default_factory=list)
+    embeddings: List[OpenAiEmbedding] = Field(default_factory=list)
 
-    def add_text_chunk(self, chunk_index: int, text_chunk: str):
+    def add_job(self, job: Job):
+        for resource in job.resources:
+            assert isinstance(resource, ParsedWebContentTextChunks)
+            for chunk_index, text_chunk in enumerate(resource.content):
+                self.add_request(resource_id=str(resource.id), chunk_index=chunk_index, text_chunk=text_chunk)
+
+    def add_request(self, resource_id: str, chunk_index: int, text_chunk: str):
+        self.embeddings.append(OpenAiEmbedding(
+            resource_id=resource_id,
+            chunk_index=chunk_index,
+            embedding_index=len(self.embeddings),
+            text_chunk=text_chunk
+        ))
+
+    def add_embedding(self, embedding_index: int, embedding: List[float]):
+        self.embeddings[embedding_index].embedding = embedding
+
+    def get_ordered_embeddings(self, resource_id: str) -> List[List[float]]:
         """
-        Add a text chunk to the embeddings.
-
-        Args:
-            chunk_index (int): The index of the text chunk.
-            text_chunk (str): The text chunk.
-
-        Raises:
-            ValueError: If a text chunk already exists for the given chunk index.
-        """
-        if chunk_index in self.embeddings:
-            raise ValueError(f'Text chunk already exists for chunk_index {chunk_index}')
-        self.embeddings[chunk_index] = OpenAiEmbedding(chunk_index=chunk_index, text_chunk=text_chunk)
-
-    def add_embedding(self, chunk_index: int, embedding: List[float]):
-        """
-        Add an embedding to the embeddings.
-
-        Args:
-            chunk_index (int): The index of the text chunk.
-            embedding (List[float]): The embedding vector.
-
-        Raises:
-            ValueError: If no text chunk is found for the given chunk index.
-        """
-        if chunk_index not in self.embeddings:
-            raise ValueError(f'No text_chunk found for chunk_index {chunk_index}')
-        self.embeddings[chunk_index].embedding = embedding
-
-    def get_embedding(self, chunk_index: int) -> List[float]:
-        """
-        Get the embedding for a given chunk index.
-
-        Args:
-            chunk_index (int): The index of the text chunk.
+        Get the embeddings ordered by their chunk index.
 
         Returns:
-            List[float]: The embedding vector.
-
-        Raises:
-            ValueError: If no text chunk is found for the given chunk index.
+            List[List[float]]: The ordered list of embeddings.
         """
-        if chunk_index not in self.embeddings:
-            raise ValueError(f'No text_chunk found for chunk_index {chunk_index}')
-        if not self.embeddings[chunk_index].embedding:
-            raise ValueError(f'No embedding found for chunk_index {chunk_index}')
-        return self.embeddings[chunk_index].embedding
-
-    def get_text_chunk(self, chunk_index: int) -> str:
-        """
-        Get the text chunk for a given chunk index.
-
-        Args:
-            chunk_index (int): The index of the text chunk.
-
-        Returns:
-            str: The text chunk.
-
-        Raises:
-            ValueError: If no text chunk is found for the given chunk index.
-        """
-        if chunk_index not in self.embeddings:
-            raise ValueError(f'No text_chunk found for chunk_index {chunk_index}')
-        return self.embeddings[chunk_index].text_chunk
+        return list(
+            map(
+                lambda q: q.embedding,
+                sorted(
+                    filter(
+                        lambda e: e.resource_id == resource_id,
+                        self.embeddings
+                    ),
+                    key=lambda e: e.chunk_index)
+            )
+        )
 
     def get_ordered_text_chunks(self) -> List[str]:
         """
@@ -106,22 +64,90 @@ class OpenAiEmbeddings(BaseModel):
         Returns:
             List[str]: The ordered list of text chunks.
         """
-        return list(map(lambda q: q.text_chunk, sorted(self.embeddings, key=lambda e: e.chunk_index)))
+        return list(map(lambda q: q.text_chunk, sorted(self.embeddings, key=lambda e: e.embedding_index)))
 
-    def model_dump(self, **kwargs) -> Dict:
+
+class OpenAiFeatureResponse(BaseModel):
+    """
+    Model representing a feature response from OpenAI.
+
+    Attributes:
+        intended_audience (List[str]): The list of intended audiences.
+        departments (List[str]): The list of departments.
+        faculties (List[str]): The list of faculties.
+        administrative_services (List[str]): The list of administrative services.
+        degree_levels (List[str]): The list of degree levels.
+        topics (List[str]): The list of topics.
+        information_type (List[str]): The list of information types.
+        keywords (List[str]): The list of keywords.
+        entities_mentioned (List[str]): The list of entities mentioned.
+    """
+    intended_audience: List[str] = Field(default_factory=list)
+    departments: List[str] = Field(default_factory=list)
+    faculties: List[str] = Field(default_factory=list)
+    administrative_services: List[str] = Field(default_factory=list)
+    degree_levels: List[str] = Field(default_factory=list)
+    topics: List[str] = Field(default_factory=list)
+    information_type: List[str] = Field(default_factory=list)
+    keywords: List[str] = Field(default_factory=list)
+    entities_mentioned: List[str] = Field(default_factory=list)
+
+
+class OpenAiFeature(BaseModel):
+    resource_id: str
+    chunk_index: int
+    embedding_index: int
+    text_chunk: str
+    feature: Optional[OpenAiFeatureResponse] = Field(default=None)
+
+
+class OpenAiFeatures(BaseModel):
+    llm_model: str = Field(OpenAiEnvVariables.llm_model, alias='llm_model')
+    features: List[OpenAiFeature] = Field(default_factory=list)
+
+    def add_job(self, job: Job):
+        for resource in job.resources:
+            assert isinstance(resource, ParsedWebContentTextChunks)
+            for chunk_index, text_chunk in enumerate(resource.content):
+                feature = OpenAiFeatureResponse(**resource.features[chunk_index]) if len(resource.features) > chunk_index else None
+                self.features.append(OpenAiFeature(
+                    resource_id=str(resource.id),
+                    chunk_index=chunk_index,
+                    embedding_index=len(self.features),
+                    text_chunk=text_chunk,
+                    feature=feature
+                ))
+
+    def add_response(self, feature_index: int, feature: OpenAiFeatureResponse):
+        self.features[feature_index].feature = feature
+
+    def get_ordered_features(self, resource_id: str) -> List[OpenAiFeatureResponse]:
         """
-        Get the dictionary representation of the model.
-
-        Args:
-            **kwargs: Additional keyword arguments.
+        Get the embeddings ordered by their chunk index.
 
         Returns:
-            dict: The dictionary representation of the model.
+            List[List[float]]: The ordered list of embeddings.
         """
-        return {
-            **super().model_dump(**kwargs),
-            'embeddings': {k: v.model_dump(**kwargs) for k, v in self.embeddings.items()}
-        }
+        return list(
+            map(
+                lambda q: q.feature,
+                sorted(
+                    filter(
+                        lambda e: e.resource_id == resource_id,
+                        self.features
+                    ),
+                    key=lambda e: e.chunk_index)
+            )
+        )
+
+    def get_ordered_text_chunks(self) -> List[str]:
+        """
+        Get the text chunks ordered by their chunk index.
+
+        Returns:
+            List[str]: The ordered list of text chunks.
+        """
+        return list(map(lambda q: q.text_chunk, sorted(self.features, key=lambda e: e.embedding_index)))
 
 
 class OpenAiBatchCompletionEntryBody(BaseModel):
@@ -169,21 +195,6 @@ class OpenAiBatchCompletionEntry(BaseModel):
         body = OpenAiBatchCompletionEntryBody(messages=message_generator(text_chunk))
         return OpenAiBatchCompletionEntry(custom_id=str(chunk_index), body=body)
 
-    def model_dump(self, **kwargs) -> Dict:
-        """
-        Get the JSON string representation of the model.
-
-        Args:
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            str: The JSON string representation of the model.
-        """
-        return {
-            **super().model_dump(**kwargs),
-            'body': self.body.model_dump(**kwargs)
-        }
-
 
 class OpenAiBatchCompletionEntries(BaseModel):
     """
@@ -215,27 +226,3 @@ class OpenAiBatchCompletionEntries(BaseModel):
         return '\n'.join([e.model_dump_json() for e in self.entries.values()])
 
 
-class OpenAiFeatureResponse(BaseModel):
-    """
-    Model representing a feature response from OpenAI.
-
-    Attributes:
-        intended_audience (List[str]): The list of intended audiences.
-        departments (List[str]): The list of departments.
-        faculties (List[str]): The list of faculties.
-        administrative_services (List[str]): The list of administrative services.
-        degree_levels (List[str]): The list of degree levels.
-        topics (List[str]): The list of topics.
-        information_type (List[str]): The list of information types.
-        keywords (List[str]): The list of keywords.
-        entities_mentioned (List[str]): The list of entities mentioned.
-    """
-    intended_audience: List[str] = Field(default_factory=list)
-    departments: List[str] = Field(default_factory=list)
-    faculties: List[str] = Field(default_factory=list)
-    administrative_services: List[str] = Field(default_factory=list)
-    degree_levels: List[str] = Field(default_factory=list)
-    topics: List[str] = Field(default_factory=list)
-    information_type: List[str] = Field(default_factory=list)
-    keywords: List[str] = Field(default_factory=list)
-    entities_mentioned: List[str] = Field(default_factory=list)

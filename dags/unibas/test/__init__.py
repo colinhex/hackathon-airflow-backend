@@ -1,6 +1,7 @@
 from unibas.common.environment.variables import TestEnvVariables, OpenAiEnvVariables, MongoAtlasEnvVariables
 
 try:
+    # Make sure we are not in the airflow environment.
     assert OpenAiEnvVariables.conn_id is None
     assert MongoAtlasEnvVariables.conn_id is None
 

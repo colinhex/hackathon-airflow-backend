@@ -1,16 +1,17 @@
+import re
 from datetime import datetime, timezone
-from typing import Any, Literal, Union, Optional, List
+from typing import Literal, Union, Optional, List
 from urllib.parse import urlparse
 
 from aiohttp import ClientResponse
-from pydantic import BaseModel, AnyHttpUrl, Field, ConfigDict, AnyUrl, ValidationError, field_validator
+from pydantic import BaseModel, AnyHttpUrl, Field, ConfigDict, AnyUrl
 
+from unibas.common.model.model_annotations import MongoAnyHttpUrl, MongoDatetime
 from unibas.common.model.model_charset import Charset
 from unibas.common.model.model_http import HttpCode
 from unibas.common.model.model_mime_type import MimeType, is_in_mime_type_group, JSON_MIME_TYPE, TEXT_MIME_TYPE, \
     BINARY_MIME_TYPE
 from unibas.common.model.model_mongo import MongoModel
-from unibas.common.environment.variables import ModelDumpVariables, ResourceVariables
 
 
 class WebResource(MongoModel):
@@ -25,22 +26,8 @@ class WebResource(MongoModel):
     """
     model_config = ConfigDict(**MongoModel.model_config)
     resource_type: Literal['web_resource'] = Field(default='web_resource', frozen=True)
-    loc: AnyHttpUrl
-    lastmod: Optional[datetime] = Field(default=None)
-
-    @classmethod
-    def from_iso_string(cls, loc: str, lastmod: str):
-        """
-        Create a WebResource instance from ISO formatted strings.
-
-        Args:
-            loc (str): The URL of the web resource.
-            lastmod (str): The last modification date in ISO format.
-
-        Returns:
-            WebResource: The created WebResource instance.
-        """
-        return WebResource(loc=loc, lastmod=datetime.fromisoformat(lastmod))
+    loc: MongoAnyHttpUrl
+    lastmod: Optional[MongoDatetime] = Field(default=None)
 
     def was_modified_after(self, date: datetime | str, accept_none=False) -> bool:
         """
@@ -56,7 +43,7 @@ class WebResource(MongoModel):
         if accept_none and date is None:
             return True
         compare: datetime = datetime.fromisoformat(date) if isinstance(date, str) else date
-        return compare < self.lastmod
+        return compare.astimezone(tz=timezone.utc) < self.lastmod.astimezone(tz=timezone.utc)
 
     def was_modified_before(self, date: datetime | str | None, accept_none=False) -> bool:
         """
@@ -91,33 +78,20 @@ class WebResource(MongoModel):
         elif isinstance(domain, WebResource):
             return self.is_same_host(domain.loc)
 
-    def is_sub_path_from(self, path: Union[str, AnyUrl]) -> bool:
-        """
-        Check if the resource's path is a sub-path of the given path.
+    def is_sub_path_from(self, path: Union[str, re.Pattern, AnyUrl]) -> bool:
+        if isinstance(path, AnyUrl):
+            path = str(path)
+            return str(self.loc).startswith(path)
+        elif isinstance(path, str):
+            if path.startswith('/'):
+                if self.loc.path is None and not (path == '/' or path == ''):
+                    return False
+                return str(self.loc.path).startswith(path)
+            return str(self.loc).startswith(path)
+        elif isinstance(path, re.Pattern):
+            return path.match(str(self.loc.path)) is not None
 
-        Args:
-            path (Union[str, AnyUrl]): The path to compare with.
-
-        Returns:
-            bool: True if the resource's path is a sub-path, False otherwise.
-        """
-        path_string = str(path)
-        if path_string.startswith('/'):
-            return str(self.loc.path).startswith(path)
-        return str(self.loc).startswith(path_string)
-
-    def is_sub_path_from_any(self, path: List[Union[str, AnyUrl]] | None, accept_none=True, accept_empty=True) -> bool:
-        """
-        Check if the resource's path is a sub-path of any given paths.
-
-        Args:
-            path (List[Union[str, AnyUrl]] | None): The list of paths to compare with.
-            accept_none (bool, optional): Whether to accept None as a valid path. Defaults to True.
-            accept_empty (bool, optional): Whether to accept an empty list as valid. Defaults to True.
-
-        Returns:
-            bool: True if the resource's path is a sub-path of any given paths, False otherwise.
-        """
+    def is_sub_path_from_any(self, path: List[Union[str, re.Pattern, AnyUrl]] | None, accept_none=True, accept_empty=True) -> bool:
         if (path is None and accept_none) or (len(path) == 0 and accept_empty):
             return True
         return any([self.is_sub_path_from(p) for p in path])
@@ -149,29 +123,6 @@ class WebResource(MongoModel):
                 filtered.append(resource)
         return filtered
 
-    def model_dump(self, **kwargs) -> dict[str, Any]:
-        """
-        Dump the model data to a dictionary.
-
-        Args:
-            **kwargs: Additional keyword arguments for dumping the model.
-
-        Returns:
-            dict[str, Any]: The dumped model data.
-        """
-        stringify_url = kwargs.pop(ModelDumpVariables.STRINGIFY_URL, True)
-        stringify_datetime = kwargs.pop(ModelDumpVariables.STRINGIFY_DATETIME, False)
-        print('Dumping web resource: stringify_url', stringify_url, 'stringify_datetime', stringify_datetime)
-
-        dump = super().model_dump(**kwargs)
-
-        if stringify_url:
-            dump['loc'] = str(dump['loc'])
-        if stringify_datetime and 'lastmod' in dump and dump['lastmod'] is not None:
-            dump['lastmod'] = dump['lastmod'].isoformat()
-
-        return dump
-
 
 class WebContentHeader(WebResource):
     """
@@ -193,7 +144,7 @@ class WebContentHeader(WebResource):
     code: HttpCode = Field(default=HttpCode.UNKNOWN)
     mime_type: MimeType = Field(default=MimeType.UNKNOWN)
     charset: Charset = Field(default=Charset.UNKNOWN)
-    extracted_at: datetime = Field(default_factory=datetime.now)
+    extracted_at: MongoDatetime = Field(default_factory=datetime.now)
 
     @classmethod
     async def result(cls, web_resource: WebResource, client_response: ClientResponse) -> 'WebContentHeader':
@@ -213,7 +164,7 @@ class WebContentHeader(WebResource):
 
         lastmod = client_response.headers.get('Last-Modified')
         if lastmod is not None:
-            lastmod = datetime.strptime(lastmod, ResourceVariables.HEADER_DATE_FORMAT)
+            lastmod = datetime.strptime(lastmod, "%a, %d %b %Y %H:%M:%S %Z")
         else:
             lastmod = None
 
@@ -224,18 +175,6 @@ class WebContentHeader(WebResource):
             mime_type=mime_type,
             charset=charset
         )
-
-    def model_dump(self, **kwargs) -> dict[str, Any]:
-        """
-        Dump the model data to a dictionary.
-
-        Args:
-            **kwargs: Additional keyword arguments for dumping the model.
-
-        Returns:
-            dict[str, Any]: The dumped model data.
-        """
-        return super().model_dump(**kwargs)
 
 
 class WebContent(WebContentHeader):
@@ -252,7 +191,7 @@ class WebContent(WebContentHeader):
         use_enum_values=True,
     )
 
-    resource_type: Literal['web_response'] = Field(default='web_content', frozen=True)
+    resource_type: Literal['web_content'] = Field(default='web_content', frozen=True)
     content: Union[bytes, str]
 
     @classmethod
@@ -276,14 +215,14 @@ class WebContent(WebContentHeader):
 
         lastmod = client_response.headers.get('Last-Modified')
         if lastmod is not None:
-            lastmod = datetime.strptime(lastmod, ResourceVariables.HEADER_DATE_FORMAT)
+            lastmod = datetime.strptime(lastmod, "%a, %d %b %Y %H:%M:%S %Z")
         else:
             lastmod = None
 
         update_last_mod = False
-        if lastmod is not None and web_resource.lastmod is not None:
-            if web_resource.was_modified_before(lastmod):
-                update_last_mod = True
+        if lastmod is not None and web_resource.lastmod is None:
+            # If the lastmod is not set in the web resource, update it.
+            update_last_mod = True
 
         content: Union[bytes, str]
         if is_in_mime_type_group(mime_type, JSON_MIME_TYPE):
@@ -306,21 +245,13 @@ class WebContent(WebContentHeader):
             content=content
         )
 
-    def model_dump(self, **kwargs) -> dict[str, Any]:
-        """
-        Dump the model data to a dictionary.
-
-        Args:
-            **kwargs: Additional keyword arguments for dumping the model.
-
-        Returns:
-            dict[str, Any]: The dumped model data.
-        """
-        return super().model_dump(**kwargs)
-
 
 class ApiResource(BaseModel):
     resource_type: Literal['api_resource'] = Field(default='api_resource', frozen=True)
 
 
-WebResourceUnion = Union[WebResource, WebContentHeader, WebContent]
+WebResourceUnion = Union[
+    WebResource,
+    WebContentHeader,
+    WebContent
+]

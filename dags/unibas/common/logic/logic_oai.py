@@ -5,112 +5,64 @@ from airflow.providers.openai.hooks.openai import OpenAIHook
 from openai import OpenAI
 from openai.types import CreateEmbeddingResponse, FileObject, Batch
 from openai.types.chat import ParsedChatCompletion
-from typing_extensions import List, Dict, Tuple, Literal, Callable
+from typing_extensions import List, Tuple, Literal, Callable
 
-from unibas.common.environment.variables import TestEnvVariables, OpenAiEnvVariables
 from unibas.common.logic.logic_math import create_distance_dataframe, sequence_matcher_distance
-from unibas.common.model.model_openai import OpenAiEmbeddings, OpenAiFeatureResponse, OpenAiBatchCompletionEntries
-from unibas.common.model.model_parsed import TextChunks
-from unibas.common.model.model_prompt import create_feature_extraction_messages, FACULTIES, INTENDED_AUDIENCE, \
-    DEPARTMENTS, ADMINISTRATIVE_SERVICES, DEGREE_LEVELS, TOPICS, INFORMATION_TYPE
+from unibas.common.model.model_annotations import Indexed
+from unibas.common.model.model_openai import *
+from unibas.common.model.model_prompt import *
 
 
-def openai_get_client() -> OpenAI:
-    """
-    Retrieve an OpenAI client instance.
-
-    This function first checks for a test API key in the environment variables.
-    If a test API key is found, it returns an OpenAI client initialized with that key.
-    Otherwise, it retrieves the OpenAI client using the connection ID from the environment variables.
-
-    Returns:
-        OpenAI: An instance of the OpenAI client.
-    """
-    test_api_key = TestEnvVariables.open_ai_api_key
-    if test_api_key is not None:
-        return OpenAI(api_key=test_api_key)
+def openai_get_client(open_ai_key=None) -> OpenAI:
+    if open_ai_key is not None:
+        return OpenAI(api_key=open_ai_key)
+    if OpenAiEnvVariables.test_api_key is not None:
+        return OpenAI(api_key=OpenAiEnvVariables.test_api_key)
     return OpenAIHook(conn_id=OpenAiEnvVariables.conn_id).get_conn()
 
 
+def create_embeddings(job: Job) -> Dict[str, List[List[float]]]:
+    embeddings = OpenAiEmbeddings()
+    embeddings.add_job(job)
+    get_embeddings(openai_get_client(), embeddings)
+    return {
+        str(resource.id): embeddings.get_ordered_embeddings(str(resource.id))
+        for resource in job.resources
+    }
+
+
 def get_embeddings(client: OpenAI, embeddings: OpenAiEmbeddings) -> OpenAiEmbeddings:
-    """
-    Send an embedding request to the OpenAI API and collect the embeddings.
-
-    Args:
-        client (OpenAI): The OpenAI client instance.
-        embeddings (OpenAiEmbeddings): The embeddings object containing text chunks to be embedded.
-
-    Returns:
-        OpenAiEmbeddings: The embeddings object with the collected embeddings.
-    """
-    print(f'Outgoing Request: Sending embedding request to OpenAI API for chunks: {embeddings.embeddings.keys()}')
+    print(f'Outgoing Request: Sending embedding request to OpenAI API for chunks: {len(embeddings.embeddings)}')
     response: CreateEmbeddingResponse = client.embeddings.create(
         input=embeddings.get_ordered_text_chunks(),
-        model=embeddings.embedding_model,
+        model=embeddings.embedding_model
     )
-    print(f'Incoming Response: Received embeddings for chunks: {embeddings.embeddings.keys()}')
+    print(f'Incoming Response: Received embeddings for chunks: {len(embeddings.embeddings)}')
     return collect_embeddings(embeddings, response)
 
 
-def get_embeddings_from_text_chunks(client: OpenAI, text_chunks: TextChunks, embedding_model=OpenAiEnvVariables.embedding_model) -> OpenAiEmbeddings:
-    """
-    Generate embeddings for the given text chunks using the specified embedding model.
-
-    Args:
-        client (OpenAI): The OpenAI client instance.
-        text_chunks (TextChunks): The text chunks to be embedded.
-        embedding_model (str): The embedding model to use. Defaults to the value from environment variables.
-
-    Returns:
-        OpenAiEmbeddings: The embeddings object with the collected embeddings.
-    """
-    return get_embeddings(client, embeddings_query_from_text_chunks(text_chunks=text_chunks, embedding_model=embedding_model))
+def get_embeddings_from_text_chunks(client: OpenAI, resource_id, text_chunks: Indexed, embedding_model=OpenAiEnvVariables.embedding_model) -> OpenAiEmbeddings:
+    return get_embeddings(client, embeddings_query_from_text_chunks(resource_id, text_chunks=text_chunks, embedding_model=embedding_model))
 
 
 def collect_embeddings(embeddings: OpenAiEmbeddings, response: CreateEmbeddingResponse) -> OpenAiEmbeddings:
-    """
-    Collect embeddings from the OpenAI API response and add them to the embeddings object.
 
-    Args:
-        embeddings (OpenAiEmbeddings): The embeddings object to store the collected embeddings.
-        response (CreateEmbeddingResponse): The response from the OpenAI API containing the embeddings.
-
-    Returns:
-        OpenAiEmbeddings: The embeddings object with the collected embeddings.
-    """
     for _response in response.data:
-        embeddings.add_embedding(chunk_index=_response.index, embedding=_response.embedding)
+        embeddings.add_embedding(embedding_index=_response.index, embedding=_response.embedding)
     print(f'Collected response embeddings.')
     return embeddings
 
 
-def embeddings_query_from_text_chunks(text_chunks: TextChunks, embedding_model: str = OpenAiEnvVariables.embedding_model) -> OpenAiEmbeddings:
-    """
-    Create an embeddings query from the given text chunks using the specified embedding model.
+def embeddings_query_from_text_chunks(resource_id, text_chunks: Indexed, embedding_model: str = OpenAiEnvVariables.embedding_model) -> OpenAiEmbeddings:
 
-    Args:
-        text_chunks (TextChunks): The text chunks to be embedded.
-        embedding_model (str): The embedding model to use. Defaults to the value from environment variables.
-
-    Returns:
-        OpenAiEmbeddings: The embeddings object containing the text chunks to be embedded.
-    """
     embeddings = OpenAiEmbeddings(embedding_model=embedding_model)
     for chunk_index, text_chunk in text_chunks.items():
-        embeddings.add_text_chunk(chunk_index=chunk_index, text_chunk=text_chunk)
+        embeddings.add_request(resource_id, chunk_index=chunk_index, text_chunk=text_chunk)
     print('Created embeddings query.')
     return embeddings
-def create_batch_input_file(text_chunks: TextChunks, message_generator) -> bytes:
-    """
-    Create a batch input file from the given text chunks and message generator.
 
-    Args:
-        text_chunks (TextChunks): The text chunks to be included in the batch file.
-        message_generator (Callable): A function to generate messages for each text chunk.
 
-    Returns:
-        bytes: The batch input file encoded as bytes.
-    """
+def create_batch_input_file(text_chunks: Indexed, message_generator) -> bytes:
     batch_completion_entries = OpenAiBatchCompletionEntries()
     for chunk_index, text_chunk in text_chunks.items():
         batch_completion_entries.add(chunk_index, text_chunk, message_generator)
@@ -121,17 +73,6 @@ def create_batch_input_file(text_chunks: TextChunks, message_generator) -> bytes
 
 
 def create_file(client: OpenAI, file: bytes, purpose: Literal["assistants", "batch", "fine-tune", "vision"]) -> FileObject:
-    """
-    Create a file object in the OpenAI system.
-
-    Args:
-        client (OpenAI): The OpenAI client instance.
-        file (bytes): The file content as bytes.
-        purpose (Literal): The purpose of the file (e.g., "assistants", "batch", "fine-tune", "vision").
-
-    Returns:
-        FileObject: The created file object.
-    """
     buffer = BytesIO(file)
     file: FileObject = client.files.create(
         file=buffer,
@@ -148,16 +89,7 @@ def create_batch(
         batch_description: str = 'OpenAI Batch Completions',
 ) -> Batch:
     """
-    Create a batch request in the OpenAI system.
-
-    Args:
-        client (OpenAI): The OpenAI client instance.
-        file (FileObject): The file object to be used as input for the batch.
-        endpoint (Literal): The API endpoint for the batch request.
-        batch_description (str): A description for the batch request.
-
-    Returns:
-        Batch: The created batch object.
+    Not used yet. Stub.
     """
     return client.batches.create(
         input_file_id=file.id,
@@ -171,19 +103,11 @@ def create_batch(
 
 def get_feature_extractions_via_batch_api(
         client: OpenAI,
-        text_chunks: TextChunks,
-        message_generator: Callable[[TextChunks], List[Dict[str, str]]] = create_feature_extraction_messages
+        text_chunks: Indexed,
+        message_generator: Callable[[Indexed], List[Dict[str, str]]] = create_feature_extraction_messages
 ) -> Tuple[FileObject, Batch]:
     """
-    Create a batch request for feature extraction using the OpenAI API.
-
-    Args:
-        client (OpenAI): The OpenAI client instance.
-        text_chunks (TextChunks): The text chunks to be processed.
-        message_generator (Callable): A function to generate messages for each text chunk. Defaults to create_feature_extraction_messages.
-
-    Returns:
-        Tuple[FileObject, Batch]: The created file object and batch object.
+    Not used yet. Stub.
     """
     print('Called on to create batch request for openai for text chunks: ', text_chunks)
     file: FileObject = client.files.create(file=create_batch_input_file(text_chunks, message_generator), purpose='batch')
@@ -191,46 +115,39 @@ def get_feature_extractions_via_batch_api(
     return file, batch
 
 
-async def get_feature_extractions_via_api(client: OpenAI, text_chunks: TextChunks) -> Dict[int, OpenAiFeatureResponse]:
+def create_feature_extractions(job: Job) -> Dict[str, List[OpenAiFeatureResponse]]:
+    features = OpenAiFeatures()
+    features.add_job(job)
+    asyncio.run(get_feature_extractions_via_api(openai_get_client(), features))
+    return {
+        str(resource.id): features.get_ordered_features(str(resource.id))
+        for resource in job.resources
+    }
+
+
+async def get_feature_extractions_via_api(client: OpenAI, features: OpenAiFeatures):
     """
-    Send feature extraction requests to the OpenAI API asynchronously.
+    Makes feature completion requests to OpenAI for each text chunk.
 
-    Args:
-        client (OpenAI): The OpenAI client instance.
-        text_chunks (TextChunks): The text chunks to be processed.
-
-    Returns:
-        Dict[int, OpenAiFeatureResponse]: A dictionary mapping chunk indices to their feature extraction responses.
+    See also: create_feature_extraction_messages
     """
-    async def send_request(_client: OpenAI, chunk_index: int, messages: List[Dict[str, str]], model: str = OpenAiEnvVariables.llm_model) -> Tuple[int, OpenAiFeatureResponse]:
-        """
-        Send a single feature extraction request to the OpenAI API.
-
-        Args:
-            _client (OpenAI): The OpenAI client instance.
-            chunk_index (int): The index of the text chunk.
-            messages (List[Dict[str, str]]): The messages to be sent in the request.
-            model (str): The model to use for the request. Defaults to the value from environment variables.
-
-        Returns:
-            Tuple[int, OpenAiFeatureResponse]: The chunk index and the feature extraction response.
-        """
-        print(f'Outgoing Request: Sending request for chunk index {chunk_index}')
-        completion: ParsedChatCompletion = _client.beta.chat.completions.parse(
-            model=model,
-            messages=messages,
+    async def send_request(_client: OpenAI, feature: OpenAiFeature):
+        if feature.feature is not None:
+            print(f'Feature already exists, skipping request for document {feature.resource_id} chunk index {feature.chunk_index}')
+            return
+        print(f'Outgoing Request: Sending request for document {feature.resource_id} chunk index {feature.chunk_index}')
+        parsed_completion: ParsedChatCompletion = await asyncio.to_thread(
+            _client.beta.chat.completions.parse,
+            model=features.llm_model,
+            messages=create_feature_extraction_messages(feature.text_chunk),
             response_format=OpenAiFeatureResponse
         )
-        print(f'Incoming Response: Received response for chunk index {chunk_index}')
-        return chunk_index, completion.choices[0].message.parsed
+        print(f'Incoming Response: Received response for document {feature.resource_id} chunk index {feature.chunk_index}')
+        print('Feature:', feature.feature)
+        feature.feature = clean_llm_tag_choices(OpenAiFeatureResponse.parse_raw(parsed_completion.choices[0].message.content))
+        print(f'Model {features.llm_model} chose for {feature.resource_id}, chunk index {feature.chunk_index} features:', feature.feature.model_dump_json(exclude_defaults=True))
 
-    print('Creating prompts for feature extraction')
-    prompts = [(idx, create_feature_extraction_messages(chunk)) for idx, chunk in text_chunks.items()]
-    print('Sending requests to OpenAI API')
-    results = await asyncio.gather(*[send_request(client, idx, msgs) for idx, msgs in prompts])
-    print('Processing responses from OpenAI API')
-    result_dict = {index: result for index, result in results}
-    return clean_all_llm_tag_choices(result_dict)
+    await asyncio.gather(*[send_request(client, feature) for feature in features.features])
 
 
 def clean_llm_tag_choice(choices, options, distance_function):
@@ -251,7 +168,7 @@ def clean_llm_tag_choice(choices, options, distance_function):
     for idx, row in df.iterrows():
         sorted_row = row.sort_values(ascending=False)
         value, score = (sorted_row.index[0], sorted_row.iloc[0]) if not sorted_row.empty else (None, None)
-        if score is not None and score > 0.9:
+        if score is not None and score > 0.9:  # Accept slight errors like capitalization / spelling / punctuation differences
             cleaned_list.append(value)
 
     return cleaned_list
@@ -260,12 +177,6 @@ def clean_llm_tag_choice(choices, options, distance_function):
 def clean_llm_tag_choices(feature_response: OpenAiFeatureResponse):
     """
     Clean the LLM tag choices in the feature response.
-
-    Args:
-        feature_response (OpenAiFeatureResponse): The feature response containing the tags to clean.
-
-    Returns:
-        OpenAiFeatureResponse: The feature response with cleaned tags.
     """
     if feature_response.intended_audience:
         feature_response.intended_audience = clean_llm_tag_choice(
@@ -303,18 +214,3 @@ def clean_llm_tag_choices(feature_response: OpenAiFeatureResponse):
         )
 
     return feature_response
-
-
-def clean_all_llm_tag_choices(feature_responses: Dict[int, OpenAiFeatureResponse]):
-    """
-    Clean all LLM tag choices in the feature responses.
-
-    Args:
-        feature_responses (Dict[int, OpenAiFeatureResponse]): A dictionary mapping chunk indices to their feature responses.
-
-    Returns:
-        Dict[int, OpenAiFeatureResponse]: The dictionary with cleaned feature responses.
-    """
-    for index, feature_response in feature_responses.items():
-        clean_llm_tag_choices(feature_response)
-    return feature_responses
