@@ -31,14 +31,15 @@ if content.is_some_sub_path_from_any(['/some/path', '/another/path']):
 ```
 * Regular expressions.
 ```python
-if content.matches(r'^https://www.example.com/some/path/.*$'):
+if content.matches(r'^https:\/\/www\.example\.com\/some\/path\/.*$'):
     pass
 ```
 ```python
 if content.matches_any([
-    r'^https://www.example.com/some/path/.*$', 
-    r'^https://www.example.com/another/path/.*$'
+    r'^https:\/\/www\.example\.com\/some\/path\/.*$', 
+    r'^https:\/\/www\.example\.com\/another\/path\/.*$'
 ]):
+    pass
     pass
 ```
 
