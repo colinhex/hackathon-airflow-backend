@@ -1,5 +1,3 @@
-import re
-
 from toolz import pipe
 
 from unibas.common.logic.logic_html import *
@@ -12,49 +10,17 @@ from unibas.common.model.model_parsed import *
 
 
 def parse(content: WebContent) -> 'ParsedContentUnion':
-    """
-    Parse the given web content and return the parsed result.
-
-    Args:
-        content (WebContent): The web content to parse.
-
-    Returns:
-        ParsedContentUnion: The parsed content result.
-
-    Raises:
-        ValueError: If the content is not recognized.
-        Exception: If an error occurs during parsing.
-    """
-    if isinstance(content, ParsedWebContentSuccess):
-        # Early return if already parsed.
+    if isinstance(content, ParsedContent):
         print(f'Content already parsed: {content.loc}')
         return content
     if isinstance(content, WebContent):
-        try:
-            print(f'Parsing: {content.loc}')
-            return parse_web_content(content)
-        except NotImplementedError as nie:
-            print(f'Parsing not implemented for content: {content.loc}, {content.mime_type}')
-            return ParsedWebContentFailure.create(content=content, reason=nie)
-        except Exception as exception:
-            raise Exception('Something happened during parsing: ', exception)
+        print(f'Parsing: {content.loc}')
+        return parse_web_content(content)
     else:
         raise ValueError(f'Content not recognized: {type(content)}')
 
 
 def parse_web_content(content: WebContent) -> 'ParsedContentUnion':
-    """
-    Parse the web content based on its MIME type.
-
-    Args:
-        content (WebContent): The web content to parse.
-
-    Returns:
-        ParsedContentUnion: The parsed content result.
-
-    Raises:
-        ValueError: If the MIME type is unsupported.
-    """
     match content:
         case WebContent(mime_type=MimeType.TEXT_HTML):
             print(f"Matched: {content.loc}, MIME Type: {MimeType.TEXT_HTML}")
@@ -134,18 +100,6 @@ def parse_web_content(content: WebContent) -> 'ParsedContentUnion':
 
 
 def parse_web_content_text_xml(content: WebContent):
-    """
-    Parse the web content with MIME type TEXT_XML.
-
-    Args:
-        content (WebContent): The web content to parse.
-
-    Returns:
-        ParsedContentUnion: The parsed content result if it is a sitemap.
-
-    Raises:
-        NotImplementedError: If the content is not a sitemap.
-    """
     soup: BeautifulSoup = get_xml_soup(content.content, charset=content.charset)
     if is_sitemap(soup):
         return parse_web_content_xml_sitemap(content)
@@ -154,18 +108,6 @@ def parse_web_content_text_xml(content: WebContent):
 
 
 def parse_web_content_application_xml(content: WebContent):
-    """
-    Parse the web content with MIME type APPLICATION_XML.
-
-    Args:
-        content (WebContent): The web content to parse.
-
-    Returns:
-        ParsedContentUnion: The parsed content result if it is a sitemap.
-
-    Raises:
-        NotImplementedError: If the content is not a sitemap.
-    """
     soup: BeautifulSoup = get_xml_soup(content.content, charset=content.charset)
     if is_sitemap(soup):
         return parse_web_content_xml_sitemap(content)
@@ -174,18 +116,6 @@ def parse_web_content_application_xml(content: WebContent):
 
 
 def parse_web_content_application_rss_xml(content: WebContent):
-    """
-    Parse the web content with MIME type APPLICATION_RSS_XML.
-
-    Args:
-        content (WebContent): The web content to parse.
-
-    Returns:
-        ParsedContentUnion: The parsed content result if it is a sitemap.
-
-    Raises:
-        NotImplementedError: If the content is not a sitemap.
-    """
     soup: BeautifulSoup = get_xml_soup(content.content, charset=content.charset)
     if is_sitemap(soup):
         return parse_web_content_xml_sitemap(content)
@@ -194,18 +124,6 @@ def parse_web_content_application_rss_xml(content: WebContent):
 
 
 def parse_web_content_application_atom_xml(content: WebContent):
-    """
-    Parse the web content with MIME type APPLICATION_ATOM_XML.
-
-    Args:
-        content (WebContent): The web content to parse.
-
-    Returns:
-        ParsedContentUnion: The parsed content result if it is a sitemap.
-
-    Raises:
-        NotImplementedError: If the content is not a sitemap.
-    """
     soup: BeautifulSoup = get_xml_soup(content.content, charset=content.charset)
     if is_sitemap(soup):
         return parse_web_content_xml_sitemap(content)
@@ -214,18 +132,6 @@ def parse_web_content_application_atom_xml(content: WebContent):
 
 
 def parse_web_content_application_xhtml_xml(content: WebContent):
-    """
-    Parse the web content with MIME type APPLICATION_XHTML_XML.
-
-    Args:
-        content (WebContent): The web content to parse.
-
-    Returns:
-        ParsedContentUnion: The parsed content result if it is a sitemap.
-
-    Raises:
-        NotImplementedError: If the content is not a sitemap.
-    """
     soup: BeautifulSoup = get_xml_soup(content.content, charset=content.charset)
     if is_sitemap(soup):
         return parse_web_content_xml_sitemap(content)
@@ -234,44 +140,15 @@ def parse_web_content_application_xhtml_xml(content: WebContent):
 
 
 def parse_web_content_xml_sitemap(content: WebContent):
-    """
-    Parse the web content as an XML sitemap.
-
-    Args:
-        content (WebContent): The web content to parse.
-
-    Returns:
-        ParsedWebContentXmlSitemapResult: The parsed XML sitemap result.
-    """
     print(f'Parsing WebContent XML Sitemap: {content.loc}')
     xml_soup = get_xml_soup(content.content, charset=content.charset)
-
-    match content:
-        case WebContent(loc='https://www.dummy-host.com/specific-path/specific-thing.any'):
-            # Special Parsing for an exact resource.
-            raise ValueError()
-        case _:
-            if content.is_same_host('https://www.dummy-host.com'):
-                # Special Parsing for a given host.
-                raise ValueError()
-            elif content.is_sub_path_from('https://www.dummy-host.com/some-path'):
-                # Special Parsing for given sub-path.
-                raise ValueError()
-            elif content.is_sub_path_from_any([
-                'https://www.dummy-host.com/some-path',
-                'https://www.dummy-host.com/some-other-path'
-            ]):
-                # Special Parsing for multiple sub-paths.
-                raise ValueError()
-            filter_paths = None
-
-    return ParsedWebContentXmlSitemapResult(
+    return ParsedSitemap(
         loc=content.loc,
         lastmod=content.lastmod,
         code=content.code,
         mime_type=content.mime_type,
         charset=content.charset,
-        content=parse_web_resources_from_sitemap(xml_soup, filter_paths=filter_paths)
+        content=parse_web_resources_from_sitemap(xml_soup)
     )
 
 
@@ -281,17 +158,8 @@ def parse_web_content_xml_sitemap(content: WebContent):
 
 
 def parse_web_content_text_html(content: WebContent) -> 'ParsedContentUnion':
-    """
-    Parse the web content with MIME type TEXT_HTML.
-
-    Args:
-        content (WebContent): The web content to parse.
-
-    Returns:
-        ParsedContentUnion: The parsed HTML content result.
-    """
     attributes: HtmlAttributes = parse_html_to_attributes(content)
-    return ParsedWebContentHtml(
+    return ParsedHtml(
         loc=content.loc,
         lastmod=content.lastmod,
         code=content.code,
@@ -303,15 +171,6 @@ def parse_web_content_text_html(content: WebContent) -> 'ParsedContentUnion':
 
 
 def parse_html_to_attributes(content: WebContent) -> HtmlAttributes:
-    """
-    Extract HTML attributes from the web content.
-
-    Args:
-        content (WebContent): The web content to parse.
-
-    Returns:
-        HtmlAttributes: The extracted HTML attributes.
-    """
     print(f'Parsing HTML Attributes for: {content.loc}')
     html_text: str = get_as_string(content.content, charset=content.charset)
     soup: BeautifulSoup = get_soup(html_text)
@@ -334,26 +193,25 @@ def parse_html_to_attributes(content: WebContent) -> HtmlAttributes:
 
 
 def parse_html_body(content: WebContent) -> List[str]:
-    """
-    Extract and clean the body text from the HTML content.
-
-    Args:
-        content (WebContent): The web content to parse.
-
-    Returns:
-        TextChunks: The cleaned and split text chunks from the HTML body.
-    """
     print(f'Parsing HTML Body for: {content.loc}')
+
     html_text: str = get_as_string(content.content, charset=content.charset)
     soup: BeautifulSoup = get_soup(html_text)
     body = soup.find('body')
+    print(body)
     assert body is not None
+
     # Special parsing for specific resources. -----------------------------------------------------
     if content.is_same_host('https://dmi.unibas.ch'):
         # Site dmi.unibas.ch always has a content div with class 'content'.
         content = body.find('div', class_='content')
+        print(content.text)
         assert content is not None
         text = content.get_text(separator=' ')
+    elif content.is_same_host('https://data.dmi.unibas.ch'):
+        # For iframe data from dmi.unibas.ch.
+        # TODO parse tables like these https://data.dmi.unibas.ch/dmiweb/fs2024/fbi/30526/index.html
+        text = body.get_text(separator=' ')
     elif content.is_same_host('https://www.unibas.ch'):
         # Site www.unibas.ch always has content_wrapper divs of which the first and the 4 last are not relevant.
         content_wrappers = body.find_all('div', class_='content_wrapper', recursive=True)
@@ -382,17 +240,8 @@ def parse_html_body(content: WebContent) -> List[str]:
 
 
 def parse_web_content_application_pdf(content: WebContent) -> 'ParsedContentUnion':
-    """
-    Parse the web content with MIME type APPLICATION_PDF.
-
-    Args:
-        content (WebContent): The web content to parse.
-
-    Returns:
-        ParsedContentUnion: The parsed PDF content result.
-    """
     attributes: 'PdfAttributes' = parse_pdf_to_attributes(content)
-    return ParsedWebContentPdf(
+    return ParsedPdf(
         loc=content.loc,
         lastmod=content.lastmod,
         code=content.code,
@@ -404,15 +253,6 @@ def parse_web_content_application_pdf(content: WebContent) -> 'ParsedContentUnio
 
 
 def parse_pdf_to_attributes(content: WebContent) -> PdfAttributes:
-    """
-    Extract PDF attributes from the web content.
-
-    Args:
-        content (WebContent): The web content to parse.
-
-    Returns:
-        PdfAttributes: The extracted PDF attributes.
-    """
     print(f'Parsing PDF Attributes for: {content.loc}')
     pdf_bytes = get_as_bytes(content.content, charset=content.charset)
     document = get_pdf_document(pdf_bytes)
@@ -433,39 +273,13 @@ def parse_pdf_to_attributes(content: WebContent) -> PdfAttributes:
 
 
 def parse_pdf_body(content: WebContent) -> List[str]:
-    """
-    Extract and clean the body text from the PDF content.
-
-    Args:
-        content (WebContent): The web content to parse.
-
-    Returns:
-        TextChunks: The cleaned and split text chunks from the PDF body.
-    """
     print(f'Parsing PDF Body for: {content.loc}')
     pdf_bytes: bytes = get_as_bytes(content.content, charset=content.charset)
 
-    match content:
-        case WebContent(loc='https://www.dummy-host.com/specific-path/specific-thing.any'):
-            # Special Parsing for an exact resource.
-            raise ValueError()
-        case _:
-            if content.is_same_host('https://www.dummy-host.com'):
-                # Special Parsing for a given host.
-                raise ValueError()
-            elif content.is_sub_path_from('https://www.dummy-host.com/some-path'):
-                # Special Parsing for given sub-path.
-                raise ValueError()
-            elif content.is_sub_path_from_any([
-                'https://www.dummy-host.com/some-path',
-                'https://www.dummy-host.com/some-other-path'
-            ]):
-                # Special Parsing for multiple sub-paths.
-                raise ValueError()
-            return pipe(
-                extract_text_from_pdf_bytes(pdf_bytes),
-                clean_and_split_text
-            )
+    return pipe(
+        extract_text_from_pdf_bytes(pdf_bytes),
+        clean_and_split_text
+    )
 
 # PDF PARSING --------------------------------------------------------------------------------------
 # ##################################################################################################

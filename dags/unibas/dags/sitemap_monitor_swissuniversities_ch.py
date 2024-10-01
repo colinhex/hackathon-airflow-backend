@@ -43,7 +43,7 @@ def sitemap_monitor():
 
     @task.short_circuit
     def monitor_sitemap(dag_run: DagRun):
-        sitemap: Optional[ParsedWebContentXmlSitemapResult] = execute_sitemap_monitor(
+        sitemap: Optional[ParsedSitemap] = execute_sitemap_monitor(
             get_monitoring_date(dag_run) or sitemap_monitor_config['start_date'],
             sitemap_monitor_config['sitemap_url'],
             sitemap_monitor_config['sitemap_filter']
@@ -54,7 +54,7 @@ def sitemap_monitor():
 
     @task
     def create_ingest_jobs(sitemap):
-        sitemap: ParsedWebContentXmlSitemapResult = ParsedWebContentXmlSitemapResult.parse_raw(sitemap)
+        sitemap: ParsedSitemap = ParsedSitemap.parse_raw(sitemap)
         jobs: List[Job] = create_ingest_jobs_from_sitemap_resources(sitemap_monitor_config['dag_id'], sitemap, sitemap_monitor_config['job_size'])
         upload_ingest_job_list(jobs)
 

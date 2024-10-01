@@ -41,9 +41,8 @@ class Job(MongoModel):
         Annotated[WebResource, Tag('web_resource')],
         Annotated[WebContentHeader, Tag('web_content_header')],
         Annotated[WebContent, Tag('web_content')],
-        Annotated[ParsedWebContentFailure, Tag('parsed_web_content_failure')],
-        Annotated[ParsedWebContentPdf, Tag('parsed_web_content_pdf')],
-        Annotated[ParsedWebContentHtml, Tag('parsed_web_content_html')],
+        Annotated[ParsedPdf, Tag('parsed_pdf')],
+        Annotated[ParsedHtml, Tag('parsed_html')],
         Annotated[DocumentChunk, Tag('document_chunk')],
     ]] = Field(discriminator=Discriminator(resource_discriminator))
 

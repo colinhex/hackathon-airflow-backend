@@ -98,7 +98,6 @@ pip install -r requirements.txt
   chmod +x setup.sh; chmod +x run_tests.sh
   ```
 * What does the Setup Script do?
-  * You can read it in the [setup.sh](./setup.sh) file.
   * It runs `pytest` to test the backend (Which can also be run manually with the [run_tests.sh](./run_tests.sh) file.).
   * It generates the `init.db` file for the Airflow postgres instance from your environment variables.
   * It calls docker to compose the [docker-compose.yml](/docker-compose.yml) to initialize 3 containers (Airflow Webserver, Airflow Scheduler, Airflow Postgres).
@@ -183,95 +182,76 @@ Currently, the backend is providing the following data chunk format (**Example (
 ```json
 {
   "_id": {
-    "$oid": "66f87529b04edd0e875ca5a8"
+    "$oid": "66fc5abe49bcca6886e3027d"
   },
   "resource_type": "document_chunk",
-  "text": "Description: The seminar will address the topic of the impact of AI on: the economy, the environment, and society . On the first date, an introduction into the topic and into the form of the seminar will be give...[...]",
+  "text": "Studienadministration Student Life Cycle Prozesse in der Studienadministration Die Services Studienadministration ...  [...]",
   "embedding": [
-    0.009043736383318901,
-    -0.044048476964235306,
-    0.028220245614647865,
-    -0.004187040496617556,
-    -0.0014948883326724172,
-    0.021672500297427177,
-    "..."
-  ], 
+    0.0026333164423704147,
+    0.014166126027703285,
+    0.0018062825547531247,
+    -0.04768044874072075,
+    -0.01722395233809948,
+    0.010201775468885899,
+    -0.011148889549076557,
+    0.004218041, 
+    [...]
+  ],
   "tags": {
-    "intended_audience": [
-      "Current students",
-      "PhD candidates",
-      "International students"
-    ],
-    "departments": [
-      "Department of Mathematics and Computer Science"
-    ],
-    "faculties": [],
-    "administrative_services": [],
-    "degree_levels": [
-      "Master",
-      "PhD"
+    "administrative_services": [
+      "Student Administration Services"
     ],
     "topics": [
-      "Research Opportunities",
-      "Career Development"
+      "Documents",
+      "Final Documents"
     ],
     "information_type": [
       "Procedural Information",
-      "Program Details",
-      "Application Instructions"
+      "Support Services"
     ],
     "keywords": [
-      "AI",
-      "economy",
-      "environment",
-      "society",
-      "seminar",
-      "team presentation",
-      "Eucor",
-      "sustainability",
-      "guest speakers",
-      "collaboration",
-      "ethical implications"
+      "Studienadministration",
+      "Student Life Cycle",
+      "Services",
+      "Verwaltungsdatenbank",
+      "Dokumentationen",
+      "Schulungen",
+      "Support",
+      "Abschluss Urkunde",
+      "Diploma Supplement",
+      "Zeugnis",
+      "Ersatzdokumente",
+      "Verifizierung von Dokumenten"
     ],
     "entities_mentioned": [
-      "E. Baudrier",
-      "D. Ruire",
-      "Amanda Sessim Parisenti",
-      "University of Basel",
-      "Université de Haute-Alsace",
-      "Universität Freiburg",
-      "Moodle platform",
-      "Eucor seminar 2023"
-    ]
+      "Universität Basel",
+      "Musterdokumente",
+      "Semesterrechnung",
+      "Universitätsbibliothek Basel"
+    ],
+    [...]
   },
   "metadata": {
     "created_at": {
-      "$date": "2024-09-28T21:29:07.007Z"
+      "$date": "2024-10-01T20:25:34.534Z"
     },
     "lastmod": {
-      "$date": "2024-09-22T21:23:01.000Z"
+      "$date": "2024-08-16T00:00:00.000Z"
     },
-    "document_id": "https://dmi.unibas.ch/de/studium/computer-science-informatik/lehrangebot-hs24/seminar-eucor-seminar-in-computer-science/",
+    "document_id": "https://www.unibas.ch/de/Studium/Im-Studium/Studienadministration.html",
     "attributes": {
       "attribute_type": "html_attributes",
-      "title": "Seminar Eucor Seminar in Computer Science | Departement \r\nMathematik und Informatik | Universität Basel",
+      "title": "Studienadministration | Universität Basel",
       "author": null,
       "date": null,
-      "description": null,
+      "description": "Alles zum Studium auf Stufe Bachelor, Master und Doktorat",
       "keywords": null,
-      "links": {
-        "_id": {
-          "$oid": "66f87513072aefcdc3ec46ba"
-        },
-        "origin": "https://dmi.unibas.ch/de/studium/computer-science-informatik/lehrangebot-hs24/seminar-eucor-seminar-in-computer-science/",
-        "urls": [] 
-      }
+      "links": null
     },
-    "chunk_id": "https://dmi.unibas.ch/de/studium/computer-science-informatik/lehrangebot-hs24/seminar-eucor-seminar-in-computer-science/_0",
+    "chunk_id": "https://www.unibas.ch/de/Studium/Im-Studium/Studienadministration.html_0",
     "chunk_index": 0
   }
 }
-
 ```
 
 ## Adding Data Sources / Changing the Content Filters

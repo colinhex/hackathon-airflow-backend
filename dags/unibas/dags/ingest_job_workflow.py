@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
 
-from airflow.configuration import AirflowConfigParser
 from airflow.decorators import dag, task, task_group
 from airflow.models import TaskInstance, DagRun
-from airflow.operators.python import PythonOperator, get_current_context
+from toolz import concatv
 
+from unibas.common.logic.logic_oai import create_embeddings_for_job, create_features_for_job
+from unibas.common.logic.logic_parse import parse
+from unibas.common.logic.logic_web_client import fetch_resource_batch
 from unibas.common.processing import *
 
 
@@ -57,18 +59,8 @@ def ingest_job_workflow():
         )
         def download_job_resources(_task_id):
             job: Job = get_job_by_id(ObjectId(_task_id))
-
-            if check_for_document_chunks(job):
-                print(f"Job {job.id} already has document chunks, skipping ahead.")
-                return str(job.id)
-
-            verify_resources_available(job)
-
-            download_resources(job)
-
+            job.resources = fetch_resource_batch(job.resources)
             update_job(job)
-            verify_download_success(job)
-
             return _task_id
 
         return download_job_resources(get_params())
@@ -84,21 +76,9 @@ def ingest_job_workflow():
         )
         def parse_job_resources(_job_id):
             job: Job = get_job_by_id(ObjectId(_job_id))
-
-            if check_for_document_chunks(job):
-                print(f"Job {job.id} already has document chunks, skipping ahead.")
-                return _job_id
-
-            parse_resources(job)
-            url_graph: UrlGraph = collect_links_into_graph_and_remove_from_attributes(job)
-
-            update_job(job)
-            verify_text_chunks_available(job)
-
-            # Further handling for links.
-            print(f"Processing URL Graph: {url_graph.model_dump_json(indent=2)}")
-
-            return _job_id
+            job.resources = [parse(resource) for resource in job.resources]
+            update_url_graph(job)
+            return update_job(job)
 
         return parse_job_resources(job_id)
 
@@ -112,16 +92,7 @@ def ingest_job_workflow():
         )
         def create_embeddings(_job_id):
             job: Job = get_job_by_id(ObjectId(_job_id))
-
-            if check_for_document_chunks(job):
-                print(f"Job {job.id} already has document chunks, skipping ahead.")
-                return _job_id
-
-            _embeddings = create_embeddings_for_job(job)
-
-            verify_embeddings_available(job, _embeddings)
-
-            return _embeddings
+            return create_embeddings_for_job(job)
 
         @task(
             task_id="create_feature_extractions",
@@ -129,38 +100,18 @@ def ingest_job_workflow():
         )
         def create_feature_extractions(_job_id):
             job: Job = get_job_by_id(ObjectId(_job_id))
-
-            if check_for_document_chunks(job):
-                print(f"Job {job.id} already has document chunks, skipping ahead.")
-                return _job_id
-
-            _features = extract_features_for_job(job)
-
-            verify_feature_extraction_available(job, _features)
-
-            _features = {resource_id: dump_all_models(feature) for resource_id, feature in _features.items()}
-            return _features
+            return create_features_for_job(job)
 
         @task(
             task_id="merge_features",
             task_display_name="Merge Features"
         )
-        def merge_features(_job_id, _embeddings, _features):
+        def merge_features(_job_id, embeddings, features):
             job: Job = get_job_by_id(ObjectId(_job_id))
-
-            if check_for_document_chunks(job):
-                print(f"Job {job.id} already has document chunks, skipping ahead.")
-                return _job_id
-
-            # Merge embeddings and features
             for idx, resource in enumerate(job.resources):
-                assert isinstance(resource, ParsedWebContentTextChunks)
-                resource.embeddings = _embeddings[str(resource.id)]
-                resource.features = _features[str(resource.id)]
-
-            update_job(job)
-
-            return _job_id
+                job.resources[idx].embeddings = embeddings[str(resource.id)]
+                job.resources[idx].features = features[str(resource.id)]
+            return update_job(job)
 
         create_embeddings_task = create_embeddings(job_id)
         create_feature_extractions_task = create_feature_extractions(job_id)
@@ -174,17 +125,8 @@ def ingest_job_workflow():
         )
         def create_documents(_job_id):
             job: Job = get_job_by_id(ObjectId(_job_id))
-
-            if check_for_document_chunks(job):
-                print(f"Job {job.id} already has document chunks, skipping ahead.")
-                return _job_id
-
-            create_chunk_document_from_job(job)
-
-            update_job(job)
-            verify_documents_available(job)
-
-            return _job_id
+            job.resources = list(concatv(*[create_documents_for_resource(resource) for resource in job.resources]))
+            return update_job(job)
 
         return create_documents(job_id)
 
@@ -196,8 +138,7 @@ def ingest_job_workflow():
         )
         def delete_old_documents(_job_id):
             job: Job = get_job_by_id(ObjectId(_job_id))
-
-            delete_old_documents_from_vector_embeddings_collection(job)
+            return delete_old_documents_from_vector_embeddings_collection(job)
 
         @task(
             task_id="upload_new_documents",
@@ -205,10 +146,7 @@ def ingest_job_workflow():
         )
         def upload_new_documents(_job_id):
             job: Job = get_job_by_id(ObjectId(_job_id))
-
-            upload_new_documents_to_vector_embeddings_collection(job)
-
-            return _job_id
+            return upload_new_documents_to_vector_embeddings_collection(job)
 
 
         delete_old_documents_task = delete_old_documents(job_id)

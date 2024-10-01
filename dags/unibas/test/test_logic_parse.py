@@ -3,7 +3,7 @@ from datetime import datetime
 
 from unibas.common.model.model_charset import Charset
 from unibas.common.model.model_http import HttpCode
-from unibas.common.model.model_parsed import ParsedWebContentXmlSitemapResult, ParsedWebContentHtml, ParsedWebContentPdf
+from unibas.common.model.model_parsed import ParsedSitemap, ParsedHtml, ParsedPdf
 from unibas.common.model.model_resource import WebContent
 from unibas.common.model.model_mime_type import MimeType
 from unibas.common.logic.logic_parse import parse
@@ -28,8 +28,8 @@ class TestSitemapParsing(unittest.TestCase):
             content=content
         )
         parsed_content = parse(web_content)
-        self.assertEqual(parsed_content.resource_type, "parsed_web_content_xml_sitemap")
-        parsed_sitemap_content: ParsedWebContentXmlSitemapResult = parsed_content
+        self.assertEqual(parsed_content.resource_type, "parsed_sitemap")
+        parsed_sitemap_content: ParsedSitemap = parsed_content
         self.assertEqual(len(parsed_sitemap_content.content), 1)
         self.assertEqual(str(parsed_sitemap_content.content[0].loc), "https://example.com/")
         self.assertEqual(str(parsed_sitemap_content.content[0].lastmod), "2023-01-01 00:00:00")
@@ -48,8 +48,8 @@ class TestHtmlParsing(unittest.TestCase):
             content=content
         )
         parsed_content = parse(web_content)
-        self.assertEqual(parsed_content.resource_type, "parsed_web_content_html")
-        parsed_html_content: ParsedWebContentHtml = parsed_content
+        self.assertEqual(parsed_content.resource_type, "parsed_html")
+        parsed_html_content: ParsedHtml = parsed_content
         self.assertEqual(parsed_html_content.attributes.title, "Test")
         self.assertEqual(1, len(parsed_html_content.content))
         self.assertEqual(parsed_html_content.content[0], "Example HTML content")
@@ -101,8 +101,8 @@ class TestPdfParsing(unittest.TestCase):
             content=content
         )
         parsed_content = parse(web_content)
-        self.assertEqual(parsed_content.resource_type, "parsed_web_content_pdf")
-        parsed_pdf_content: ParsedWebContentPdf = parsed_content
+        self.assertEqual(parsed_content.resource_type, "parsed_pdf")
+        parsed_pdf_content: ParsedPdf = parsed_content
         self.assertEqual(1, len(parsed_pdf_content.content))
         self.assertIn("Hello, World!", parsed_pdf_content.content[0])
 
