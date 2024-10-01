@@ -26,9 +26,13 @@ def on_collection(database: str, collection: str) -> Collection:
     return _get_mongo_client().get_database(database).get_collection(collection)
 
 
-def on_batch_collection() -> Collection:
-    return on_collection(MongoAtlasEnvVariables.airflow_database, MongoAtlasEnvVariables.batch_collection)
+def on_job_collection() -> Collection:
+    return on_collection(MongoAtlasEnvVariables.airflow_database, MongoAtlasEnvVariables.job_collection)
 
 
 def on_embedding_collection() -> Collection:
     return on_collection(MongoAtlasEnvVariables.vector_database, MongoAtlasEnvVariables.embeddings_collection)
+
+
+def on_url_graph_collection() -> Collection:
+    return on_collection(MongoAtlasEnvVariables.airflow_database, MongoAtlasEnvVariables.url_graph_collection)

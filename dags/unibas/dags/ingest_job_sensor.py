@@ -34,7 +34,7 @@ def ingest_job_sensor():
         task_id="job_sensor",
         mongo_conn_id=MongoAtlasEnvVariables.conn_id,
         mongo_db=MongoAtlasEnvVariables.airflow_database,
-        collection=MongoAtlasEnvVariables.batch_collection,
+        collection=MongoAtlasEnvVariables.job_collection,
         query={
             # Does a job exist that is not processing and has been tried less than 3 times?
             'tries': {
@@ -52,7 +52,7 @@ def ingest_job_sensor():
         task_display_name="Get Sensed Job Id",
     )
     def get_sensed_job_id():
-        result = on_batch_collection().find_one_and_update(
+        result = on_job_collection().find_one_and_update(
             {
                 # Get a job that is not processing and has been tried less than 3 times
                 'tries': {

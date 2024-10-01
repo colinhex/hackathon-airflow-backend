@@ -7,9 +7,8 @@ from unibas.common.logic.logic_mongo import *
 from unibas.common.logic.logic_parse import parse
 from unibas.common.logic.logic_web_client import fetch_resource, fetch_resource_headers
 from unibas.common.model.model_job import *
-from unibas.common.model.model_parsed import ParsedContentUnion, ParsedWebContentXmlSitemapResult
+from unibas.common.model.model_parsed import ParsedContentUnion, ParsedSitemap
 from unibas.common.model.model_resource import WebContent, WebResource, WebContentHeader
-from unibas.common.model.model_utils import dump_all_models
 
 
 # Sitemap Monitors
@@ -23,14 +22,14 @@ def get_monitoring_date(dag_run: DagRun) -> Optional[datetime]:
         return None
 
 
-def execute_sitemap_monitor(cutoff: datetime, sitemap_url: str, filter_paths: Optional[List[str]] = None) -> Optional[ParsedWebContentXmlSitemapResult]:
+def execute_sitemap_monitor(cutoff: datetime, sitemap_url: str, filter_paths: Optional[List[str]] = None) -> Optional[ParsedSitemap]:
     print(f"Fetching sitemap content from {sitemap_url}...")
     content: WebContent = fetch_resource(WebResource(loc=sitemap_url))
     parsed: ParsedContentUnion = parse(content)
 
-    if not isinstance(parsed, ParsedWebContentXmlSitemapResult):
+    if not isinstance(parsed, ParsedSitemap):
         raise ValueError(f"Expected sitemap content, but got {type(parsed)}")
-    sitemap: ParsedWebContentXmlSitemapResult = parsed
+    sitemap: ParsedSitemap = parsed
 
     print(f"Filtering sitemap content modified after {cutoff.isoformat()} {'with filter paths ' + str(filter_paths) if filter_paths else 'without filter paths'}...")
     sitemap.content = WebContent.filter(sitemap.content, filter_paths=filter_paths, modified_after=cutoff)
@@ -63,7 +62,7 @@ def execute_dam_monitor(cutoff: datetime, dam_uris: List[str]) -> Optional[List[
     return headers
 
 
-def create_ingest_jobs_from_sitemap_resources(monitor_dag_id: str, sitemap: ParsedWebContentXmlSitemapResult, job_size: int = 50) -> List[Job]:
+def create_ingest_jobs_from_sitemap_resources(monitor_dag_id: str, sitemap: ParsedSitemap, job_size: int = 50) -> List[Job]:
     print('Partitioning sitemap content into ingest jobs...')
     job_resources: List[List[WebResource]] = [list(partition) for partition in partition_all(job_size, sitemap.content)]
     jobs: List[Job] = [Job(created_by=monitor_dag_id, resources=resources) for resources in job_resources]
@@ -82,8 +81,8 @@ def create_ingest_jobs_from_dam_resources(monitor_dag_id: str, dam_resources: Li
 def upload_ingest_job_list(jobs: List[Job]) -> None:
     print(f'Uploading {len(jobs)} ingest jobs...')
 
-    result: InsertManyResult = on_batch_collection().insert_many(
-        dump_all_models(jobs)
+    result: InsertManyResult = on_job_collection().insert_many(
+        MongoModel.dump_all_models(jobs)
     )
 
     if result.acknowledged:

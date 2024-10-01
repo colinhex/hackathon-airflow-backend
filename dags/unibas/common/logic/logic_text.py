@@ -202,4 +202,19 @@ def clean_and_split_text(text: str) -> List[str]:
     """
     text = clean_text(text)
     sentences = nlp_split_into_sentences(text)
-    return collect_sentences_into_chunks(sentences)
+    chunks = collect_sentences_into_chunks(sentences)
+    return chunks
+
+
+def filter_below_word_count(chunks: List[str], min_word_count: int = 10) -> List[str]:
+    """
+    Filter out chunks that have a word count below the specified minimum.
+
+    Args:
+        chunks (List[str]): The list of chunks to filter.
+        min_word_count (int): The minimum word count for a chunk to be retained.
+
+    Returns:
+        List[str]: The filtered list of chunks.
+    """
+    return [chunk for chunk in chunks if len(chunk.split()) >= min_word_count]

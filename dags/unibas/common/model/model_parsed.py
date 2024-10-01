@@ -14,84 +14,21 @@ from unibas.common.model.model_resource import WebContent, WebResource
 # #################################################################################################
 # GENERIC  ----------------------------------------------------------------------------------------
 
-class ParsedWebContent(WebContent):
-    """
-    Model representing parsed web content.
-
-    Attributes:
-        resource_type (Literal['parsed_web_content']): The type of the resource.
-        success (bool): Indicates if the parsing was successful.
-    """
-    resource_type: Literal['parsed_web_content'] = Field(default='parsed_web_content', frozen=True)
-    success: bool
-
-
-class ParsedWebContentSuccess(ParsedWebContent):
-    """
-    Model representing successfully parsed web content.
-
-    Attributes:
-        resource_type (Literal['parsed_web_content_success']): The type of the resource.
-        success (bool): Indicates if the parsing was successful (always True).
-    """
-    resource_type: Literal['parsed_web_content_success'] = Field(default='parsed_web_content_success', frozen=True)
-    success: bool = Field(True, frozen=True)
-
-
-class ParsedWebContentTextChunks(ParsedWebContentSuccess):
+class ParsedContent(WebContent):
     """
     Model representing parsed web content with text chunks.
     """
-    resource_type: Literal['parsed_web_content_text_chunks'] = Field(default='parsed_web_content_text_chunks', frozen=True)
+    resource_type: Literal['parsed_web_content'] = Field(default='parsed_web_content', frozen=True)
     content: List[str] = Field(default_factory=list, alias="text_chunks")
     embeddings: List[List[float]] = Field(default_factory=list, alias="embeddings")
     features: List[Dict[str, Any]] = Field(default_factory=list, alias="features")
-
-
-class ParsedWebContentFailure(ParsedWebContent):
-    """
-    Model representing failed parsed web content.
-
-    Attributes:
-        resource_type (Literal['parsed_web_content_failure']): The type of the resource.
-        success (bool): Indicates if the parsing was successful (always False).
-        implemented (bool): Indicates if the failure was due to an unimplemented feature.
-        reason (str): The reason for the failure.
-    """
-    resource_type: Literal['parsed_web_content_failure'] = Field(default='parsed_web_content_failure', frozen=True)
-    success: bool = Field(False, frozen=False)
-    implemented: bool = Field(...)
-    reason: str = Field(...)
-
-    @classmethod
-    def create(cls, content: WebContent, reason: Union[RuntimeError, Exception, str, None]) -> 'ParsedWebContentFailure':
-        """
-        Create a ParsedWebContentFailure instance.
-
-        Args:
-            content (WebContent): The original web content.
-            reason (Union[RuntimeError, Exception, str, None]): The reason for the failure.
-
-        Returns:
-            ParsedWebContentFailure: The created instance.
-        """
-        return ParsedWebContentFailure(
-            loc=content.loc,
-            lastmod=content.lastmod,
-            code=content.code,
-            mime_type=content.mime_type,
-            charset=content.charset,
-            content=content.content,
-            implemented=not isinstance(reason, NotImplementedError),
-            reason=f'{reason}'
-        )
 
 
 # GENERIC -----------------------------------------------------------------------------------------
 # #################################################################################################
 # XML PARSED --------------------------------------------------------------------------------------
 
-class ParsedWebContentXmlSitemapResult(ParsedWebContentSuccess):
+class ParsedSitemap(ParsedContent):
     """
     Model representing parsed web content for an XML sitemap.
 
@@ -99,38 +36,11 @@ class ParsedWebContentXmlSitemapResult(ParsedWebContentSuccess):
         resource_type (Literal['parsed_web_content_xml_sitemap']): The type of the resource.
         content (List[WebResource]): List of web resources parsed from the XML sitemap.
     """
-    resource_type: Literal['parsed_web_content_xml_sitemap'] = Field(default='parsed_web_content_xml_sitemap', frozen=True)
+    resource_type: Literal['parsed_sitemap'] = Field(default='parsed_sitemap', frozen=True)
     content: List[WebResource] = Field(default_factory=list, alias="content")
     filter_paths: Optional[List[str]] = Field(None, alias="filter")
     modified_after: Optional[MongoDatetime] = Field(None, alias="filter")
     modified_before: Optional[MongoDatetime] = Field(None, alias="filter")
-
-    def set_filter_paths(self, filter_paths: List[str]):
-        """
-        Set the filter paths for the XML sitemap.
-
-        Args:
-            filter_paths (List[str]): The filter paths.
-        """
-        self.filter_paths = filter_paths
-
-    def set_modified_after(self, modified_after: datetime):
-        """
-        Set the modified after date for the XML sitemap.
-
-        Args:
-            modified_after (datetime): The modified after date.
-        """
-        self.modified_after = modified_after
-
-    def set_modified_before(self, modified_before: datetime):
-        """
-        Set the modified before date for the XML sitemap.
-
-        Args:
-            modified_before (datetime): The modified before date.
-        """
-        self.modified_before = modified_before
 
 
 # XML PARSED --------------------------------------------------------------------------------------
@@ -138,38 +48,19 @@ class ParsedWebContentXmlSitemapResult(ParsedWebContentSuccess):
 # HTML PARSED -------------------------------------------------------------------------------------
 
 
-class ParsedWebContentHtml(ParsedWebContentTextChunks):
-    """
-    Model representing parsed web content in HTML format.
-
-    Attributes:
-        resource_type (Literal['parsed_web_content_success']): The type of the resource.
-        attributes (HtmlAttributes): The HTML attributes of the parsed content.
-        content (TextChunks): The text chunks of the parsed content.
-    """
-    resource_type: Literal['parsed_web_content_html'] = Field(default='parsed_web_content_html', frozen=True)
+class ParsedHtml(ParsedContent):
+    resource_type: Literal['parsed_html'] = Field(default='parsed_html', frozen=True)
     attributes: 'HtmlAttributes' = Field(..., alias="attributes")
 
 
 class HtmlAttributes(BaseModel):
-    """
-    Model representing HTML attributes.
-
-    Attributes:
-        title (Optional[str]): The title of the HTML content.
-        author (Optional[str]): The author of the HTML content.
-        date (Optional[str]): The date of the HTML content.
-        description (Optional[str]): The description of the HTML content.
-        keywords (Optional[str]): The keywords of the HTML content.
-        links (UrlParseResult): The parsed URLs from the HTML content.
-    """
     attribute_type: Literal['html_attributes'] = Field(default='html_attributes', frozen=True)
-    title: Optional[str] = Field(..., alias="title")
-    author: Optional[str] = Field(..., alias="author")
-    date: Optional[str] = Field(..., alias="date")
-    description: Optional[str] = Field(..., alias="description")
-    keywords: Optional[str] = Field(..., alias="keywords")
-    links: 'UrlParseResult' = Field(..., alias="links")
+    title: Optional[str] = Field(None, alias="title")
+    author: Optional[str] = Field(None, alias="author")
+    date: Optional[str] = Field(None, alias="date")
+    description: Optional[str] = Field(None, alias="description")
+    keywords: Optional[str] = Field(None, alias="keywords")
+    links: Optional['UrlParseResult'] = Field(None, alias="links")
 
 
 def _url_arche_key(origin: AnyUrl, target: AnyUrl) -> str:
@@ -177,14 +68,6 @@ def _url_arche_key(origin: AnyUrl, target: AnyUrl) -> str:
 
 
 class UrlArche(BaseModel):
-    """
-    Model representing a URL arche.
-
-    Attributes:
-        origin (AnyUrl): The origin URL.
-        target (AnyUrl): The target URL.
-        weight (Optional[float]): The weight of the URL arche.
-    """
     origin: MongoAnyUrl = Field(..., alias="origin")
     target: MongoAnyUrl = Field(..., alias="target")
     weight: Optional[float] = Field(0.0, alias="weight")
@@ -201,188 +84,90 @@ class UrlArche(BaseModel):
             raise ValueError('key is required')
 
     def get_key(self) -> str:
-        """
-        Generate a unique key for the URL arche.
-
-        Returns:
-            str: The unique key.
-        """
         return self.key
 
     def merge(self, arche: 'UrlArche'):
-        """
-        Merge another URL arche into this one by adding their weights.
-
-        Args:
-            arche (UrlArche): The URL arche to merge.
-        """
         self.weight += arche.weight
 
 
 class UrlGraph(MongoModel):
-    """
-    Model representing a graph of URLs.
-
-    Attributes:
-        nodes (Set[AnyUrl]): The set of nodes (URLs) in the graph.
-        arches (Dict[str, UrlArche]): The dictionary of URL arches in the graph.
-    """
-    nodes: Set[MongoAnyUrl] = Field(default_factory=set)
+    name: str
+    nodes: Dict[MongoAnyUrl, Optional[MongoDatetime]] = Field(default_factory=dict)
     arches: Dict[str, UrlArche] = Field(default_factory=dict)
 
-    def add_arche(self, arche: UrlArche):
-        """
-        Add a URL arche to the graph.
+    def merge_node(self, node):
+        if node not in self.nodes:
+            self.nodes[node] = None
 
-        Args:
-            arche (UrlArche): The URL arche to add.
-        """
-        self.nodes.add(arche.origin)
-        self.nodes.add(arche.target)
+    def merge_nodes(self, nodes: Dict[MongoAnyUrl, Optional[MongoDatetime]]):
+        for node, value in nodes.items():
+            if node not in self.nodes:
+                self.nodes[node] = value
+            elif value is not None and self.nodes[node] is None:
+                self.nodes[node] = value
+            elif value is not None and self.nodes[node] is not None:
+                self.nodes[node] = max(self.nodes[node], value)
+
+    def merge_arche(self, arche):
         if arche.key in self.arches:
             self.arches[arche.key].merge(arche)
         else:
             self.arches[arche.key] = arche
 
-    def merge(self, graph: 'UrlGraph'):
-        """
-        Merge another URL graph into this one.
+    def add_arche(self, arche: UrlArche):
+        self.merge_node(arche.origin)
+        self.merge_node(arche.target)
+        self.merge_arche(arche)
 
-        Args:
-            graph (UrlGraph): The URL graph to merge.
-        """
+    def merge(self, graph: 'UrlGraph'):
+        self.merge_nodes(graph.nodes)
         for arche in graph.arches.values():
-            self.add_arche(arche)
+            self.merge_arche(arche)
 
     @staticmethod
     def merge_all(graphs: List['UrlGraph']) -> 'UrlGraph':
-        """
-        Merge a list of URL graphs into a single graph.
-
-        Args:
-            graphs (List[UrlGraph]): The list of URL graphs to merge.
-
-        Returns:
-            UrlGraph: The merged URL graph.
-        """
-        return reduce(lambda g1, g2: (g1.merge(g2), g1)[1], graphs, UrlGraph())
+        return reduce(lambda g1, g2: (g1.merge(g2), g1)[1], graphs, UrlGraph(name=graphs[0].name))
 
     def get_outgoing_arches(self, origin: AnyUrl) -> List[UrlArche]:
-        """
-        Get the list of outgoing URL arches from a given origin URL.
-
-        Args:
-            origin (AnyUrl): The origin URL.
-
-        Returns:
-            List[UrlArche]: The list of outgoing URL arches.
-        """
         if origin not in self.nodes:
             return []
         keys = [_url_arche_key(origin, target) for target in self.nodes if target != origin]
         return [self.arches[key] for key in keys if key in self.arches]
 
     def get_incoming_arches(self, target: AnyUrl) -> List[UrlArche]:
-        """
-        Get the list of incoming URL arches to a given target URL.
-
-        Args:
-            target (AnyUrl): The target URL.
-
-        Returns:
-            List[UrlArche]: The list of incoming URL arches.
-        """
         if target not in self.nodes:
             return []
         keys = [_url_arche_key(origin, target) for origin in self.nodes if origin != target]
         return [self.arches[key] for key in keys if key in self.arches]
 
     def get_all_arches_for(self, url: AnyUrl) -> List[UrlArche]:
-        """
-        Get all URL arches for a given URL.
-
-        Args:
-            url (AnyUrl): The URL.
-
-        Returns:
-            List[UrlArche]: The list of URL arches.
-        """
         return self.get_outgoing_arches(url) + self.get_incoming_arches(url)
 
 
 class UrlParseResult(MongoModel):
-    """
-    Model representing the result of parsing URLs.
-
-    Attributes:
-        origin (AnyUrl): The origin URL.
-        urls (List[Tuple[AnyUrl, int]]): The list of parsed URLs with their frequencies.
-    """
     origin: MongoAnyUrl = Field()
     urls: List[Tuple[MongoAnyUrl, int]] = Field(default_factory=list)
 
     def is_empty(self) -> bool:
-        """
-        Check if the URL parse result is empty.
-
-        Returns:
-            bool: True if empty, False otherwise.
-        """
         return len(self.urls) == 0
 
     def get_urls(self) -> List[AnyUrl]:
-        """
-        Get the list of parsed URLs.
-
-        Returns:
-            List[AnyUrl]: The list of parsed URLs.
-        """
         return [url for url, _ in self.urls]
 
     def get_urls_with_freq(self) -> List[Tuple[AnyUrl, int]]:
-        """
-        Get the list of parsed URLs with their frequencies.
-
-        Returns:
-            List[Tuple[AnyUrl, int]]: The list of parsed URLs with their frequencies.
-        """
         return self.urls
 
     def get_origin(self) -> AnyUrl:
-        """
-        Get the origin URL.
-
-        Returns:
-            AnyUrl: The origin URL.
-        """
         return self.origin
 
     def get_urls_from_same_host_from_origin(self) -> List[AnyUrl]:
-        """
-        Get the list of URLs from the same host as the origin.
-
-        Returns:
-            List[AnyUrl]: The list of URLs from the same host.
-        """
         return list(filter(lambda url: self.origin.host == url.host, self.get_urls()))
 
     def get_urls_from_different_host_from_origin(self) -> List[AnyUrl]:
-        """
-        Get the list of URLs from a different host than the origin.
-
-        Returns:
-            List[AnyUrl]: The list of URLs from a different host.
-        """
         return list(filter(lambda url: self.origin.host != url.host, self.get_urls()))
 
-    def get_graph_data(self) -> UrlGraph:
-        """
-        Get the URL graph data.
-
-        Returns:
-            UrlGraph: The URL graph data.
-        """
-        graph = UrlGraph()
+    def get_graph_data(self, graph_name: str) -> UrlGraph:
+        graph = UrlGraph(name=graph_name)
         for url, freq in self.urls:
             graph.add_arche(UrlArche(origin=self.origin, target=url, weight=freq))
         return graph
@@ -392,30 +177,12 @@ class UrlParseResult(MongoModel):
 # #################################################################################################
 # PDF PARSED --------------------------------------------------------------------------------------
 
-class ParsedWebContentPdf(ParsedWebContentTextChunks):
-    """
-    Model representing parsed web content in PDF format.
-
-    Attributes:
-        resource_type (Literal['parsed_web_content_pdf']): The type of the resource.
-        attributes (PdfAttributes): The PDF attributes of the parsed content.
-        content (TextChunks): The text chunks of the parsed content.
-    """
-    resource_type: Literal['parsed_web_content_pdf'] = Field(default='parsed_web_content_pdf', frozen=True)
+class ParsedPdf(ParsedContent):
+    resource_type: Literal['parsed_pdf'] = Field(default='parsed_pdf', frozen=True)
     attributes: 'PdfAttributes' = Field(..., alias="attributes")
 
 
 class PdfAttributes(BaseModel):
-    """
-    Model representing PDF attributes.
-
-    Attributes:
-        title (Optional[str]): The title of the PDF content.
-        author (Optional[str]): The author of the PDF content.
-        date (Optional[str]): The date of the PDF content.
-        description (Optional[str]): The description of the PDF content.
-        keywords (Optional[str]): The keywords of the PDF content.
-    """
     attribute_type: Literal['pdf_attributes'] = Field(default='pdf_attributes', frozen=True)
     title: Optional[str] = Field(None, alias="title")
     author: Optional[str] = Field(None, alias="author")
@@ -463,15 +230,11 @@ class DocumentChunk(MongoModel):
 # TYPE DEF ----------------------------------------------------------------------------------------
 
 ParsedContentUnion = Union[
-    ParsedWebContentSuccess,
-    ParsedWebContentFailure,
-    ParsedWebContentHtml,
-    ParsedWebContentPdf,
-    ParsedWebContentXmlSitemapResult,
+    ParsedContent,
+    ParsedHtml,
+    ParsedPdf,
+    ParsedSitemap,
 ]
-"""
-Union type representing various parsed web content models.
-"""
 
 # TYPE DEF ----------------------------------------------------------------------------------------
 # #################################################################################################

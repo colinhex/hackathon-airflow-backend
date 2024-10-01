@@ -50,10 +50,11 @@ class MongoAtlasEnvVariables:
         vector_database (str): The vector database name.
         embeddings_collection (str): The embeddings collection name.
         airflow_database (str): The Airflow database name.
-        batch_collection (str): The batch collection name.
+        job_collection (str): The batch collection name.
     """
     conn_id: str = os.getenv('AIRFLOW_ATLAS_CONN_ID')
     vector_database: str = os.getenv('AIRFLOW_ATLAS_VECTOR_DATABASE')
     embeddings_collection: str = os.getenv('AIRFLOW_ATLAS_VECTOR_EMBEDDINGS_COLLECTION')
     airflow_database: str = os.getenv('AIRFLOW_ATLAS_AIRFLOW_DATABASE')
-    batch_collection: str = os.getenv('AIRFLOW_ATLAS_AIRFLOW_BATCH_COLLECTION')
+    job_collection: str = os.getenv('AIRFLOW_ATLAS_AIRFLOW_JOB_COLLECTION')
+    url_graph_collection: str = os.getenv('AIRFLOW_ATLAS_AIRFLOW_URL_GRAPH_COLLECTION')

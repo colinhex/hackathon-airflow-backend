@@ -2,7 +2,6 @@ from datetime import timedelta
 
 from airflow.decorators import dag, task
 
-from unibas.common.model.model_utils import dump_all_models_json
 from unibas.common.monitoring import *
 
 
@@ -51,7 +50,7 @@ def dam_monitor():
         )
         if not web_content_headers:
             return None
-        return dump_all_models_json(web_content_headers)
+        return MongoModel.dump_all_models_json(web_content_headers)
 
     @task
     def create_ingest_jobs(content_headers):
